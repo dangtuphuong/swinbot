@@ -9,7 +9,7 @@ function App() {
 
   useEffect(() => {
     axios.get('http://localhost:5000/api')
-      .then(res => setMessages(res?.data));
+      .then(res => setMessages(res?.data || []));
   },[])
 
   const onChange = (e) => {
@@ -21,7 +21,7 @@ function App() {
     setIsSubmitting(true);
     return axios.post('http://localhost:5000/api/ask', { data: userInput })
       .then(res => {
-        setMessages(res?.data);
+        setMessages(res?.data || []);
         setUserInput('')
       })
       .finally(() => setIsSubmitting(false));
