@@ -4,7 +4,7 @@ cd server\
 python -m venv venv\
 source venv/bin/activate (Windows .\venv\Scripts\activate.bat or .\venv\Scripts\activate.ps1 or source venv/Scripts/activate)\
 pip install -r requirements.txt\
-echo "GPT_KEY=YOUR_GPT_KEY_HERE" > .env\
+echo "OPENAI_API_KEY=YOUR_GPT_KEY_HERE" > .env\
 python app.py
 
 In another terminal\
