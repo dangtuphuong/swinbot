@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_community.document_loaders import WebBaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
@@ -73,24 +74,30 @@ website_url = "https://www.swinburneonline.edu.au/faqs/"
 vector_store = get_vectorstore_from_url(website_url)
 
 chat_history = [
-    {
-        "content": "Hello, I am a Bot. How can I help you?",
-        "type": "ai"
-    }
+    AIMessage(content="Hello, I am a bot. How can I help you?", type='ai'),
 ]
+
+def getChatHistory():
+    result = []
+    for message in chat_history:
+        result.append({
+            'type': message.type,
+            'content': message.content
+        })
+    return jsonify(result)
 
 @app.route('/api')
 def api():
-    return jsonify(chat_history)
+    return getChatHistory()
 
 @app.route('/api/ask', methods=['POST'])
 def ask():
-    user_input = request.form['user_input']
+    user_input = request.get_json().get('data')
     bot_response = get_response(user_input)
-    chat_history.append({ "content": user_input, "type": "human" })
-    chat_history.append({ "content": bot_response, "type": "ai" })
+    chat_history.append(HumanMessage(content=user_input, type='human'))
+    chat_history.append(AIMessage(content=bot_response, type='ai'))
 
-    return jsonify(chat_history)
+    return getChatHistory()
 
 if __name__ == '__main__':
     app.run(debug=True) 
