@@ -10,6 +10,6 @@ python app.py
 In another terminal\
 cd client\
 npm install\
-npm start\
+npm start
 
-The app should run on http://localhost:3000/\
+The app should run on http://localhost:3000/
