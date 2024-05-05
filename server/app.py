@@ -16,6 +16,7 @@ RESPONSE_TEMPLATE = """
 Given the dataset provided and the below context:\n\n{context}, generate responses exclusively from the information within the dataset. Ignore any external sources or internet data. If the answer cannot be found, respond with "Umm, I don't know".
 """
 
+
 def get_vectorstore_from_url(url):
     loader = WebBaseLoader(url)
     document = loader.load()
@@ -26,6 +27,7 @@ def get_vectorstore_from_url(url):
     vector_store = Chroma.from_documents(document_chunks, OpenAIEmbeddings())
 
     return vector_store
+
 
 def get_context_retriever_chain(vector_store):
     llm = ChatOpenAI(model="gpt-3.5-turbo-0125", temperature=0)
@@ -42,29 +44,32 @@ def get_context_retriever_chain(vector_store):
 
     return retriever_chain
 
+
 def get_conversational_rag_chain(retriever_chain):
     llm = ChatOpenAI(model="gpt-3.5-turbo-0125", temperature=0)
-    
+
     prompt = ChatPromptTemplate.from_messages([
-      ("system", RESPONSE_TEMPLATE),
-      MessagesPlaceholder(variable_name="chat_history"),
-      ("user", "{input}"),
+        ("system", RESPONSE_TEMPLATE),
+        MessagesPlaceholder(variable_name="chat_history"),
+        ("user", "{input}"),
     ])
-    
+
     stuff_documents_chain = create_stuff_documents_chain(llm, prompt)
-    
+
     return create_retrieval_chain(retriever_chain, stuff_documents_chain)
+
 
 def get_response(user_input):
     retriever_chain = get_context_retriever_chain(vector_store)
     conversation_rag_chain = get_conversational_rag_chain(retriever_chain)
-    
+
     response = conversation_rag_chain.invoke({
         "chat_history": chat_history,
         "input": user_input
     })
-    
+
     return response['answer']
+
 
 website_url = "https://www.swinburneonline.edu.au/faqs/"
 
@@ -73,6 +78,7 @@ vector_store = get_vectorstore_from_url(website_url)
 chat_history = [
     AIMessage(content="Hello, I am a bot. How can I help you?", type='ai'),
 ]
+
 
 def getChatHistory():
     result = []
@@ -83,12 +89,15 @@ def getChatHistory():
         })
     return jsonify({"items": result})
 
+
 app = Flask(__name__)
 CORS(app)
+
 
 @app.route('/api')
 def api():
     return getChatHistory()
+
 
 @app.route('/api/ask', methods=['POST'])
 def ask():
@@ -99,5 +108,6 @@ def ask():
 
     return getChatHistory()
 
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000) 
+    app.run(host='0.0.0.0', port=5000)
