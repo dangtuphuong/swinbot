@@ -18,7 +18,7 @@ source venv/bin/activate
 
 # Windows
 py -m venv venv
-./env/Scripts/activate
+./venv/Scripts/activate
 ```
 
 Install the required dependencies:
