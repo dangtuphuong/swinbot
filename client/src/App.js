@@ -9,22 +9,24 @@ function App() {
 
   useEffect(() => {
     axios.get('http://localhost:5000/api')
-      .then(res => setMessages(res?.data || []));
+      .then(res => setMessages(res?.data?.items || []))
+      .catch(() => setMessages([]));
   },[])
 
   const onChange = (e) => {
     setUserInput(e?.target?.value)
   }
 
-  const onAsk = (e) => {
+  const onAsk = async (e) => {
     e?.preventDefault();
     setIsSubmitting(true);
-    return axios.post('http://localhost:5000/api/ask', { data: userInput })
-      .then(res => {
-        setMessages(res?.data || []);
-        setUserInput('')
-      })
-      .finally(() => setIsSubmitting(false));
+    try {
+      const res = await axios.post('http://localhost:5000/api/ask', { data: userInput });
+      setMessages(res?.data?.items || []);
+      setUserInput('');
+    } finally {
+      return setIsSubmitting(false);
+    }
   }
 
   return (

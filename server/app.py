@@ -16,9 +16,6 @@ RESPONSE_TEMPLATE = """
 Given the dataset provided and the below context:\n\n{context}, generate responses exclusively from the information within the dataset. Ignore any external sources or internet data. If the answer cannot be found, respond with "Umm, I don't know".
 """
 
-app = Flask(__name__)
-CORS(app)
-
 def get_vectorstore_from_url(url):
     loader = WebBaseLoader(url)
     document = loader.load()
@@ -84,7 +81,10 @@ def getChatHistory():
             'type': message.type,
             'content': message.content
         })
-    return jsonify(result)
+    return jsonify({"items": result})
+
+app = Flask(__name__)
+CORS(app)
 
 @app.route('/api')
 def api():
@@ -100,4 +100,4 @@ def ask():
     return getChatHistory()
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(host='0.0.0.0', port=5000) 
