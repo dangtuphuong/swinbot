@@ -18,7 +18,7 @@ source venv/bin/activate
 
 # Windows
 py -m venv venv
-./venv/Scripts/activate
+.\venv\Scripts\activate
 ```
 
 Install the required dependencies:
@@ -31,7 +31,7 @@ Add .env and GPT key
 
 ```bash
 # Change YOUR_GPT_KEY_HERE to your key
-echo "OPENAI_API_KEY=YOUR_GPT_KEY_HERE" > .env\
+echo "OPENAI_API_KEY=YOUR_GPT_KEY_HERE" > .env
 ```
 
 ## Running the Application
