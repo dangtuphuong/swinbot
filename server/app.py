@@ -76,7 +76,7 @@ website_url = "https://www.swinburneonline.edu.au/faqs/"
 vector_store = get_vectorstore_from_url(website_url)
 
 chat_history = [
-    AIMessage(content="Hello, I am a bot. How can I help you?", type='ai'),
+    AIMessage(content="Hello, I am Swinbot. How can I help you?", type='ai'),
 ]
 
 
