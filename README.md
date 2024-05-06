@@ -31,7 +31,7 @@ Add .env and GPT key
 
 ```bash
 # Change YOUR_GPT_KEY_HERE to your key
-echo "OPENAI_API_KEY=YOUR_GPT_KEY_HERE" > .env
+Create .env in the server directory and add your GPT key in
 ```
 
 ## Running the Application
