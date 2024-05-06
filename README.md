@@ -27,12 +27,7 @@ Install the required dependencies:
 pip install -r requirements.txt
 ```
 
-Add .env and GPT key
-
-```bash
-# Change YOUR_GPT_KEY_HERE to your key
-Create .env in the server directory and add your GPT key in
-```
+Create .env file in the server directory and add your OPENAI_API_KEY in the file
 
 ## Running the Application
 
