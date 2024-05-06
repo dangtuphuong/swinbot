@@ -18,7 +18,7 @@ source venv/bin/activate
 
 # Windows
 py -m venv venv
-.\venv\Scripts\activate
+.\venv\Scripts\activate.bat
 ```
 
 Install the required dependencies:
