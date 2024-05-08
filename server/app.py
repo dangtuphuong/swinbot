@@ -28,6 +28,9 @@ def get_fine_tuned_model():
     return job.fine_tuned_model
 
 
+fine_tuned_model = get_fine_tuned_model()
+
+
 def get_vectorstore_from_url(url):
     loader = WebBaseLoader(url)
     document = loader.load()
@@ -69,7 +72,6 @@ def get_conversational_rag_chain(retriever_chain, model):
 
 
 def get_response(user_input):
-    fine_tuned_model = get_fine_tuned_model()
     retriever_chain = get_context_retriever_chain(
         vector_store, fine_tuned_model)
     conversation_rag_chain = get_conversational_rag_chain(
