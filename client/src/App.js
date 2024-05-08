@@ -22,6 +22,7 @@ function App() {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false); // State for dark theme
+  const [inputPosition, setInputPosition] = useState({ top: 0, left: 0 }); // State to track input position
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -39,6 +40,18 @@ function App() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    // Update input position on component mount
+    updateInputPosition();
+  }, []);
+
+  const updateInputPosition = () => {
+    if (inputRef.current) {
+      const { top, left } = inputRef.current.getBoundingClientRect();
+      setInputPosition({ top, left });
+    }
+  };
 
   const fetchMessages = async () => {
     try {
@@ -95,48 +108,38 @@ function App() {
   };
 
   const handleSuggestions = debounce(async (inputVal) => {
+    // Clear suggestions and hide suggestion box if input is empty
     if (!inputVal.trim()) {
+      setSuggestions([]);
       setShowSuggestions(false);
-    } else {
-      fetch('keywords.csv')
-        .then(response => response.text())
-        .then(data => {
-          const parsedData = Papa.parse(data, {
-            header: false,
-            skipEmptyLines: true
-          });
-
-          let foundWords = [];
-
-          const exactMatch = parsedData.data.filter(row => {
-            return row[2].toLowerCase() === inputVal.toLowerCase();
-          });
-
-          const partialMatch = parsedData.data.filter(row => {
-            return row[2].toLowerCase().includes(inputVal.toLowerCase());
-          });
-
-          const wordBoundaryMatch = parsedData.data.filter(row => {
-            const words = row[2].toLowerCase().split(' ');
-            return words.includes(inputVal.toLowerCase());
-          });
-
-          const regex = new RegExp(`\\b${inputVal.toLowerCase()}\\b`);
-          const regexMatch = parsedData.data.filter(row => {
-            return regex.test(row[2].toLowerCase());
-          });
-
-          const allMatches = [...exactMatch, ...partialMatch, ...wordBoundaryMatch, ...regexMatch];
-          const filteredSuggestions = allMatches.map(row => row[0]);
-
-          setSuggestions(filteredSuggestions.slice(0, 6));
-          setShowSuggestions(filteredSuggestions.length > 0);
-
-          console.log("Suggestions:", filteredSuggestions);
-          console.log("Triggered by words:", [...new Set(foundWords)]);
-        });
+      return;
+    }
+  
+    try {
+      const response = await fetch('keywords.csv');
+      const data = await response.text();
+      const parsedData = Papa.parse(data, {
+        header: false,
+        skipEmptyLines: true
+      });
+  
+      const filteredSuggestions = parsedData.data.reduce((acc, row) => {
+        const lowerCaseInputVal = inputVal.toLowerCase();
+        const lowerCaseRow = row[2].toLowerCase();
+        if (lowerCaseRow.includes(lowerCaseInputVal)) {
+          acc.push(row[0]);
+        }
+        return acc;
+      }, []);
+  
+      setSuggestions(filteredSuggestions.slice(0, 6));
+      setShowSuggestions(filteredSuggestions.length > 0);
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
     }
   }, 300);
+  
+  
 
   const handleSuggestionClick = (suggestion) => {
     setUserInput(suggestion);
@@ -202,11 +205,17 @@ function App() {
   <TextField
   inputRef={inputRef}
   multiline
-  rows={2} // Adjust this value to make the input box smaller
+  rows={2}
   variant="outlined"
   value={userInput}
   onChange={handleChange}
   onKeyPress={handleKeyPress}
+  onFocus={(e) => {
+    if (userInput.trim() !== '') {
+      setShowSuggestions(true);
+      handleSuggestions(userInput);
+    }
+  }}
   disabled={isSubmitting}
   fullWidth
   style={{
@@ -214,11 +223,22 @@ function App() {
     borderRadius: "4px",
     marginBottom: "10px",
   }}
-  onFocus={() => setShowSuggestions(true)}
 />
 
+
     {showSuggestions && (
-      <ul style={{ position: "absolute", top: "calc(100% + 10px)", left: 0, width: "100%", backgroundColor: darkTheme ? "#555" : "white", borderRadius: "4px", border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`, zIndex: 1 }}>
+      <ul 
+        style={{
+          position: "fixed",
+          top: inputPosition.top + inputRef.current.clientHeight + 10, // Adjust 10 as needed
+          left: inputPosition.left,
+          width: inputRef.current.clientWidth,
+          backgroundColor: darkTheme ? "#555" : "white",
+          borderRadius: "4px",
+          border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`,
+          zIndex: 1
+        }}
+      >
         {suggestions.map((suggestion, index) => (
           <li key={index} onClick={() => handleSuggestionClick(suggestion)} style={{ color: darkTheme ? "#fff" : "#333" }}>
             {suggestion}
