@@ -187,7 +187,7 @@ function App() {
             fullWidth
             style={{
               backgroundColor: darkTheme ? "#555" : "white",
-              borderRadius: "4px",
+              borderRadius: "6px",
               marginBottom: "10px",
             }}
             onFocus={() => setShowSuggestions(true)}
