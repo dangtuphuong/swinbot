@@ -8,3 +8,5 @@ python-dotenv==1.0.1
 chromadb==0.3.29
 beautifulsoup4==4.12.2
 python-dotenv==1.0.1
+spacy==3.7.4
+# python -m spacy download en_core_web_md
