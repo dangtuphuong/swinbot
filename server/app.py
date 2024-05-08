@@ -116,15 +116,5 @@ def ask():
     return getChatHistory()
 
 
-@app.route('/api/word_suggestions', methods=['POST'])
-def word_suggestions():
-    try:
-        user_input = request.json.get('user_input')
-        suggestions = generate_suggestions(user_input)
-        return jsonify({"suggestions": suggestions})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
