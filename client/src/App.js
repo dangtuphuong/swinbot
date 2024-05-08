@@ -24,9 +24,16 @@ function App() {
   const [darkTheme, setDarkTheme] = useState(false); // State for dark theme
 
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     fetchMessages();
+    // Add event listener to listen for clicks on the document body
+    document.body.addEventListener('click', handleClickOutside);
+    return () => {
+      // Clean up event listener when component unmounts
+      document.body.removeEventListener('click', handleClickOutside);
+    };
   }, []);
 
   useEffect(() => {
@@ -75,7 +82,6 @@ function App() {
       setIsSubmitting(false);
     }
   };
-  
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -137,6 +143,13 @@ function App() {
     setShowSuggestions(false);
   };
 
+  const handleClickOutside = (e) => {
+    // Check if the click target is not inside the inputRef
+    if (inputRef.current && !inputRef.current.contains(e.target)) {
+      setShowSuggestions(false);
+    }
+  };
+
   // Function to toggle dark theme
   const toggleDarkTheme = () => {
     setDarkTheme(!darkTheme);
@@ -187,6 +200,7 @@ function App() {
 
   <form onSubmit={handleSubmit} style={{ marginTop: "20px" }}>
   <TextField
+  inputRef={inputRef}
   multiline
   rows={2} // Adjust this value to make the input box smaller
   variant="outlined"
@@ -254,3 +268,4 @@ const Message = ({ message }) => (
 );
 
 export default App;
+
