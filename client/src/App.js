@@ -175,46 +175,49 @@ function App() {
           <div ref={messagesEndRef} />
         </Box>
 
-        <form onSubmit={handleSubmit} style={{ marginTop: "20px" }}>
-          <TextField
-            multiline
-            rows={3}
-            variant="outlined"
-            value={userInput}
-            onChange={handleChange}
-            onKeyPress={handleKeyPress}
-            disabled={isSubmitting}
-            fullWidth
-            style={{
-              backgroundColor: darkTheme ? "#555" : "white",
-              borderRadius: "6px",
-              marginBottom: "12px",
-            }}
-            onFocus={() => setShowSuggestions(true)}
-          />
-          {showSuggestions && (
-            <ul style={{ position: "absolute", top: "calc(100% + 10px)", left: 0, width: "100%", backgroundColor: darkTheme ? "#555" : "white", borderRadius: "4px", border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`, zIndex: 1 }}>
-              {suggestions.map((suggestion, index) => (
-                <li key={index} onClick={() => handleSuggestionClick(suggestion)} style={{ color: darkTheme ? "#fff" : "#333" }}>
-                  {suggestion}
-                </li>
-              ))}
-            </ul>
-          )}
-          <Button
-            variant="contained"
-            color="primary"
-            type="submit"
-            disabled={isSubmitting}
-            style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "#1976d2", color: "#fff", marginTop: "10px" }}
-          >
-            {isSubmitting ? "Submitting" : "Submit"}
-          </Button>
-        </form>
+        <form onSubmit={handleSubmit} style={{ marginTop: "20px", position: "relative" }}>
+  <TextField
+    multiline
+    rows={3}
+    variant="outlined"
+    value={userInput}
+    onChange={handleChange}
+    onKeyPress={handleKeyPress}
+    disabled={isSubmitting}
+    fullWidth
+    style={{
+      backgroundColor: darkTheme ? "#555" : "white",
+      borderRadius: "4px",
+      marginBottom: "10px",
+    }}
+    onFocus={() => setShowSuggestions(true)}
+  />
+  {showSuggestions && (
+    <ul style={{ position: "absolute", top: "101px", left: 0, width: "100%", backgroundColor: darkTheme ? "#555" : "white", borderRadius: "4px", border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`, zIndex: 1 }}>
+      {suggestions.map((suggestion, index) => (
+        <li key={index} onClick={() => handleSuggestionClick(suggestion)} style={{ color: darkTheme ? "#fff" : "#333" }}>
+          {suggestion}
+        </li>
+      ))}
+    </ul>
+  )}
+  <Box className="buttons_last" display="flex" justifyContent="space-between">
+    <Button
+      variant="contained"
+      color="primary"
+      type="submit"
+      disabled={isSubmitting}
+      style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "#1976d2", color: "#fff", marginTop: "10px" }}
+    >
+      {isSubmitting ? "Submitting" : "Submit"}
+    </Button>
+    <Button variant="outlined" onClick={toggleDarkTheme} style={{ marginTop: "20px", color: darkTheme ? "#fff" : "#333", borderColor: darkTheme ? "#fff" : "#333" }}>
+      {darkTheme ? "Switch to Light Theme" : "Switch to Dark Theme"}
+    </Button>
+  </Box>
+</form>
 
-        <Button variant="outlined" onClick={toggleDarkTheme} style={{ marginTop: "20px", color: darkTheme ? "#fff" : "#333", borderColor: darkTheme ? "#fff" : "#333" }}>
-          {darkTheme ? "Switch to Light Theme" : "Switch to Dark Theme"}
-        </Button>
+
       </Container>
     </div>
   );
