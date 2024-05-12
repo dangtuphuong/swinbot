@@ -22,6 +22,7 @@ function App() {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false); // State for dark theme
+  
 
   const messagesEndRef = useRef(null);
 
@@ -49,27 +50,33 @@ function App() {
     const value = e.target.value;
     setUserInput(value);
     if (value.trim() === '') {
+      setSuggestions([]); // Clear suggestions
       setShowSuggestions(false);
     } else {
       handleSuggestions(value);
     }
   };
+  
+  
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault();  // Prevent the default form submit behavior
+    if (!userInput.trim()) return;  // Check if the userInput is not just whitespace
+  
     setIsSubmitting(true);
     try {
       const response = await axios.post("http://localhost:5000/api/ask", {
         data: userInput,
       });
       setMessages([...response.data.items]);
-      setUserInput("");
+      setUserInput("");  // Clear the input after submitting
     } catch (error) {
       console.error("Error submitting message:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
+  
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -137,7 +144,7 @@ function App() {
   };
 
   return (
-    <div className={`App ${darkTheme ? 'dark-theme' : ''}`} style={{ background: darkTheme ? "#222" : "#f5f5f5", minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+    <div className={`App ${darkTheme ? 'dark-theme' : ''}`} style={{ background: darkTheme ? "#222" : "white", minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
       <Container
         maxWidth="md"
         style={{
@@ -147,12 +154,12 @@ function App() {
           position: "relative",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", alignItems:"center"}}>
           <a href="https://www.swinburneonline.edu.au/faqs/" target="_blank" rel="noopener noreferrer">
             <img src={logo} alt="Logo" style={{ width: "100px" }} />
           </a>
-          <Typography variant="h4" style={{ color: darkTheme ? "#fff" : "#4285f4" }}>
-            Swinburne ChatBot
+          <Typography variant="h4" style={{ color: darkTheme ? "#fff" : "rgb(235 39 62)", fontWeight: "600" }}>
+            SWINBURNE CHATBOT
           </Typography>
         </div>
 
@@ -176,38 +183,49 @@ function App() {
         </Box>
 
         <form onSubmit={handleSubmit} style={{ marginTop: "20px", position: "relative" }}>
-  <TextField
-    multiline
-    rows={3}
-    variant="outlined"
-    value={userInput}
-    onChange={handleChange}
-    onKeyPress={handleKeyPress}
-    disabled={isSubmitting}
-    fullWidth
-    style={{
-      backgroundColor: darkTheme ? "#555" : "white",
-      borderRadius: "4px",
-      marginBottom: "10px",
-    }}
-    onFocus={() => setShowSuggestions(true)}
-  />
-  {showSuggestions && (
-    <ul style={{ position: "absolute", top: "101px", left: 0, width: "100%", backgroundColor: darkTheme ? "#555" : "white", borderRadius: "4px", border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`, zIndex: 1 }}>
-      {suggestions.map((suggestion, index) => (
-        <li key={index} onClick={() => handleSuggestionClick(suggestion)} style={{ color: darkTheme ? "#fff" : "#333" }}>
-          {suggestion}
-        </li>
-      ))}
-    </ul>
-  )}
-  <Box className="buttons_last" display="flex" justifyContent="space-between">
+        <TextField
+          multiline
+          rows={3}
+          variant="outlined"
+          value={userInput}
+          onChange={handleChange}
+          onKeyPress={handleKeyPress}
+          disabled={isSubmitting}
+          fullWidth
+          style={{
+            backgroundColor: darkTheme ? "#555" : "white",
+            borderRadius: "4px",
+            marginBottom: "10px",
+            
+          }}
+          onBlur={() => {
+            // Delay hiding suggestions to allow time for onClick to fire in dropdown
+            setTimeout(() => setShowSuggestions(false), 100);
+          }}
+          onFocus={() => {
+            if (userInput.trim() !== '') {
+              setShowSuggestions(true);
+            }
+          }}
+        />
+
+        {showSuggestions && suggestions.length > 0 && (
+          <ul style={{ position: "absolute", top: "101px", left: 0, width: "100%", backgroundColor: darkTheme ? "#555" : "white", borderRadius: "4px", border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`, zIndex: 1 }}>
+            {suggestions.map((suggestion, index) => (
+              <li key={index} onClick={() => handleSuggestionClick(suggestion)} style={{ color: darkTheme ? "#fff" : "#333" }}>
+                {suggestion}
+              </li>
+            ))}
+          </ul>
+        )}
+
+  <Box className="buttons_last" style={{display:"flex",justifyContent:"space-between", alignItems:"center"}}>
     <Button
       variant="contained"
       color="primary"
       type="submit"
       disabled={isSubmitting}
-      style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "#1976d2", color: "#fff", marginTop: "10px" }}
+      style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "rgb(235 39 62)", color: "#fff", marginTop: "10px" }}
     >
       {isSubmitting ? "Submitting" : "Submit"}
     </Button>

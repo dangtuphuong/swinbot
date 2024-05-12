@@ -78,6 +78,8 @@ li:hover {
 
 body {
   font-family: 'Roboto', sans-serif;
+  margin: auto;
+  background-color: white;
 }
 
 h1 {
