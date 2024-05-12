@@ -1,6 +1,9 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import openai
+import re
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_community.document_loaders import WebBaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -45,6 +48,37 @@ def get_vectorstore_from_url(url):
     vector_store = Chroma.from_documents(document_chunks, OpenAIEmbeddings())
 
     return vector_store
+
+
+def get_similar_questions(user_input, vector_store, top_n):
+    questions = []
+    retriever = vector_store.as_retriever(
+        search_type="similarity_score_threshold", search_kwargs={"score_threshold": 0.7, "k": 1})
+    docs = retriever.invoke(user_input)
+    if (len(docs) > 0):
+        question_pattern = r'^\s*Q[.:]?\s*(.*)$'
+        questions = re.findall(
+            question_pattern, docs[0].page_content, re.MULTILINE)
+
+    # Vectorize the user input and questions
+    vectorizer = TfidfVectorizer()
+    X = vectorizer.fit_transform([user_input] + questions)
+
+    # Calculate cosine similarity between user input and each question
+    similarities = cosine_similarity(X[0], X[1:])
+
+    # Rank questions based on similarity scores
+    ranked_questions = [(question, score)
+                        for question, score in zip(questions, similarities[0])]
+    ranked_questions.sort(key=lambda x: x[1], reverse=True)
+
+    # Exclude the top 1 question
+    ranked_questions = ranked_questions[1:]
+
+    # Return next top N relevant questions
+    top_questions = [question[0] for question in ranked_questions[:top_n]]
+
+    return top_questions
 
 
 def get_retriever(vector_store):
@@ -139,7 +173,7 @@ def getChatHistory():
             'content': message.content
         })
     # Return chat history as json
-    return jsonify({"items": result})
+    return result
 
 
 app = Flask(__name__)
@@ -148,7 +182,7 @@ CORS(app)
 
 @app.route('/api')
 def api():
-    return getChatHistory()
+    return jsonify({"items": getChatHistory()})
 
 
 @app.route('/api/ask', methods=['POST'])
@@ -160,7 +194,9 @@ def ask():
     # Add user input and response to chat history
     chat_history.append(HumanMessage(content=user_input, type='human'))
     chat_history.append(AIMessage(content=bot_response, type='ai'))
-    return getChatHistory()
+    # Get suggestion questions
+    questions = get_similar_questions(user_input, vector_store, 3)
+    return jsonify({"items": getChatHistory(), "questions": questions})
 
 
 if __name__ == '__main__':

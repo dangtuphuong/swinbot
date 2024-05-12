@@ -23,6 +23,7 @@ function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false); // State for dark theme
   const [inputPosition, setInputPosition] = useState({ top: 0, left: 0 }); // State to track input position
+  const [questions, setQuestions] = useState([]);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -73,20 +74,26 @@ function App() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (value) => {
     setIsSubmitting(true);
+    setQuestions([]);
     try {
       const response = await axios.post("http://localhost:5000/api/ask", {
-        data: userInput.trim(),
+        data: value,
       });
       setMessages([...response?.data?.items]);
+      setQuestions(response?.data?.questions);
       setUserInput("");
     } catch (error) {
       console.error("Error submitting message:", error);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = (e) => {
+    e?.preventDefault();
+    onSubmit(userInput.trim());
   };
 
   const handleKeyPress = (e) => {
@@ -191,6 +198,18 @@ function App() {
     {messages.map((message, index) => (
       <Message key={index} message={message} />
     ))}
+    <div className="quesions-wrap">
+      {questions?.map((question) => (
+        <Button
+          className="question-item"
+          variant="outlined"
+          size="small"
+          onClick={() => onSubmit(question)}
+        >
+          {question}
+        </Button>
+      ))}
+    </div>
     <div ref={messagesEndRef} />
   </Box>
 
