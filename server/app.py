@@ -15,6 +15,8 @@ website_url = "https://www.swinburneonline.edu.au/faqs/"
 
 load_dotenv()
 
+OUT_OF_SCOPE_MESSAGE = "Apologies, but that's outside my current area of expertise."
+
 RESPONSE_TEMPLATE = """
 Given the dataset provided and the below context:\n\n{context}, generate detailed responses exclusively from the information within the dataset. Ignore any external sources or internet data. If the answer cannot be found, respond with "Apologies, but that's outside my current area of expertise.".
 """
@@ -45,11 +47,25 @@ def get_vectorstore_from_url(url):
     return vector_store
 
 
+def get_retriever(vector_store):
+    # Get retriver from vector store, set similarity score threshold to be 0.7
+    return vector_store.as_retriever(
+        search_type="similarity_score_threshold", search_kwargs={"score_threshold": 0.7})
+
+
+def check_similarity(user_input, vector_store):
+    retriever = get_retriever(vector_store)
+    # Get relevant docs
+    docs = retriever.invoke(user_input)
+    # Return true if there are any relevant doc to user_input
+    return len(docs) > 0
+
+
 def get_context_retriever_chain(vector_store, model):
     # Large language model
     llm = ChatOpenAI(model=model, temperature=0)
 
-    retriever = vector_store.as_retriever()
+    retriever = get_retriever(vector_store)
 
     # Prompt to get relevant text
     search_query_prompt = ChatPromptTemplate.from_messages([
@@ -85,6 +101,14 @@ def get_conversational_rag_chain(retriever_chain, model):
 
 
 def get_response(user_input):
+    # Check if question is in scope
+    is_in_scope = check_similarity(user_input, vector_store)
+
+    # Return out of scope message
+    if not is_in_scope:
+        return OUT_OF_SCOPE_MESSAGE
+
+    # Proceed to get response if in scope
     retriever_chain = get_context_retriever_chain(
         vector_store, fine_tuned_model)
     conversation_rag_chain = get_conversational_rag_chain(
@@ -98,6 +122,7 @@ def get_response(user_input):
     return response['answer']
 
 
+# Create vector store from data retrieved from website url
 vector_store = get_vectorstore_from_url(website_url)
 
 # Chat history to store all conversation
