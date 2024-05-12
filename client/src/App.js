@@ -274,7 +274,7 @@ const Message = ({ message }) => (
         borderRadius: "4px",
       }}
     >
-      <strong>{message.type === "ai" ? "Swinbot" : "User"}:</strong>{" "}
+      <strong>{message.type === "ai" ? "Swinbot" : "You"}:</strong>{" "}
       {message.content}
     </Typography>
   </Box>
