@@ -3,6 +3,7 @@ import axios from "axios";
 import { Container, Typography, TextField, Button, Box } from "@mui/material";
 import logo from "./logo.png";
 import Papa from 'papaparse';
+import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 import './App.css';
 
 const debounce = (func, delay) => {
@@ -24,6 +25,7 @@ function App() {
   const [darkTheme, setDarkTheme] = useState(false); // State for dark theme
   const [inputPosition, setInputPosition] = useState({ top: 0, left: 0 }); // State to track input position
   const [questions, setQuestions] = useState([]);
+  const { transcript, resetTranscript, listening } = useSpeechRecognition();
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -46,6 +48,12 @@ function App() {
     // Update input position on component mount
     updateInputPosition();
   }, []);
+
+  useEffect(() => {
+    if (listening) {
+      setUserInput(transcript);
+    }
+  }, [listening, transcript]);
 
   const updateInputPosition = () => {
     if (inputRef?.current) {
@@ -84,6 +92,7 @@ function App() {
       setMessages([...response?.data?.items]);
       setQuestions(response?.data?.questions);
       setUserInput("");
+      resetTranscript();
     } catch (error) {
       console.error("Error submitting message:", error);
     } finally {
@@ -100,6 +109,14 @@ function App() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
+    }
+  };
+
+  const toggleListening = (action) => {
+    if (action === 'start') {
+      SpeechRecognition.startListening({ continuous: true });
+    } else if (action === 'stop') {
+      SpeechRecognition.stopListening();
     }
   };
 
@@ -268,6 +285,19 @@ function App() {
       >
         {isSubmitting ? "Submitting" : "Submit"}
       </Button>
+      <Button
+            variant="contained"
+            color="primary"
+            type="submit"
+            style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "#1976d2", color: "#fff", marginTop: "10px" }}
+            className="microphone-button"
+            onMouseDown={() => toggleListening('start')}
+            onMouseUp={() => toggleListening('stop')}
+            onMouseLeave={() => toggleListening('stop')}
+          >
+            {listening ? "Listening" : "Hold to Speak"}
+          </Button>
+
       <Button
         variant="outlined"
         onClick={toggleDarkTheme}
