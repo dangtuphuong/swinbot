@@ -177,84 +177,6 @@ function App() {
     zIndex: 1000, // Ensure it appears above other content
   }}
 >
-  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-    <a href="https://www.swinburneonline.edu.au/faqs/" target="_blank" rel="noopener noreferrer">
-      <img src={logo} alt="Logo" style={{ width: "100px" }} />
-    </a>
-    <Typography variant="h4" style={{ color: darkTheme ? "#fff" : "#4285f4" }}>
-      Swinburne ChatBot
-    </Typography>
-  </div>
-
-  <Box
-    display="flex"
-    flexDirection="column"
-    minHeight="60vh"
-    maxHeight="60vh"
-    overflow="auto"
-    style={{
-      border: `1px solid ${darkTheme ? "#555" : "#dadce0"}`,
-      borderRadius: "8px",
-      padding: "10px",
-      backgroundColor: darkTheme ? "#444" : "white",
-    }}
-  >
-    {messages.map((message, index) => (
-      <Message key={index} message={message} />
-    ))}
-    <div className="quesions-wrap">
-      {questions?.map((question) => (
-        <Button
-          className="question-item"
-          variant="outlined"
-          size="small"
-          onClick={() => onSubmit(question)}
-        >
-          {question}
-        </Button>
-      ))}
-    </div>
-    <div ref={messagesEndRef} />
-  </Box>
-
-  <form onSubmit={handleSubmit} style={{ marginTop: "20px" }}>
-  <TextField
-  inputRef={inputRef}
-  multiline
-  rows={2}
-  variant="outlined"
-  value={userInput}
-  onChange={handleChange}
-  onKeyPress={handleKeyPress}
-  onFocus={(e) => {
-    if (userInput.trim() !== '') {
-      setShowSuggestions(true);
-      handleSuggestions(userInput);
-    }
-  }}
-  disabled={isSubmitting}
-  fullWidth
-  style={{
-    backgroundColor: darkTheme ? "#555" : "white",
-    borderRadius: "4px",
-    marginBottom: "10px",
-  }}
-/>
-
-
-    {showSuggestions && (
-      <ul 
-        style={{
-          position: "fixed",
-          top: inputPosition?.top + inputRef?.current?.clientHeight + 10, // Adjust 10 as needed
-          left: inputPosition?.left,
-          width: inputRef?.current?.clientWidth,
-          backgroundColor: darkTheme ? "#555" : "white",
-          borderRadius: "4px",
-          border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`,
-          zIndex: 1
-        }}
-      >
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", alignItems:"center"}}>
           <a href="https://www.swinburneonline.edu.au/faqs/" target="_blank" rel="noopener noreferrer">
             <img src={logo} alt="Logo" style={{ width: "100px" }} />
@@ -335,10 +257,8 @@ function App() {
     </Button>
   </Box>
   </form>
-</ul>)}
-</form>
-      </Container>
-    </div>
+ </Container>
+  </div>
   );
 }
 
