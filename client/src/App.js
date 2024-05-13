@@ -3,6 +3,7 @@ import axios from "axios";
 import { Container, Typography, TextField, Button, Box, CircularProgress } from "@mui/material";
 import logo from "./logo.png";
 import Papa from 'papaparse';
+import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
 import './App.css';
 
 const debounce = (func, delay) => {
@@ -21,7 +22,10 @@ function App() {
   const [userInput, setUserInput] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [darkTheme, setDarkTheme] = useState(false);
+  const [darkTheme, setDarkTheme] = useState(false); // State for dark theme
+  const [inputPosition, setInputPosition] = useState({ top: 0, left: 0 }); // State to track input position
+  const [questions, setQuestions] = useState([]);
+  const { transcript, resetTranscript, listening } = useSpeechRecognition();
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -37,6 +41,13 @@ function App() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+
+  useEffect(() => {
+    if (listening) {
+      setUserInput(transcript);
+    }
+  }, [listening, transcript]);
 
   const fetchMessages = async () => {
     try {
@@ -66,6 +77,7 @@ function App() {
       const response = await axios.post("http://localhost:5000/api/ask", { data: userInput });
       setMessages([...response.data.items]);
       setUserInput("");
+      resetTranscript();
     } catch (error) {
       console.error("Error submitting message:", error);
     } finally {
@@ -77,6 +89,14 @@ function App() {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
+    }
+  };
+
+  const toggleListening = (action) => {
+    if (action === 'start') {
+      SpeechRecognition.startListening({ continuous: true });
+    } else if (action === 'stop') {
+      SpeechRecognition.stopListening();
     }
   };
 
@@ -142,6 +162,18 @@ function App() {
           )}
           <Box className="buttons_last" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Button variant="contained" color="primary" type="submit" disabled={isSubmitting || !userInput.trim()} style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "rgb(235 39 62)", color: "#fff", marginTop: "10px" }}>{isSubmitting ? <CircularProgress size={24} style={{ color: "white" }} /> : "Submit"}</Button>
+            <Button
+              variant="contained"
+              color="primary"
+              type="submit"
+              style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "#1976d2", color: "#fff", marginTop: "10px" }}
+              className="microphone-button"
+              onMouseDown={() => toggleListening('start')}
+              onMouseUp={() => toggleListening('stop')}
+              onMouseLeave={() => toggleListening('stop')}
+            >
+              {listening ? "Listening" : "Hold to Speak"}
+            </Button>
             <Button variant="outlined" onClick={toggleDarkTheme} style={{ marginTop: "20px", color: darkTheme ? "#fff" : "#333", borderColor: darkTheme ? "#fff" : "#333" }}>{darkTheme ? "Switch to Light Theme" : "Switch to Dark Theme"}</Button>
           </Box>
         </form>
