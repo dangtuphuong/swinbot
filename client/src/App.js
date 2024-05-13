@@ -22,24 +22,42 @@ function App() {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false); // State for dark theme
-  
+  const [inputPosition, setInputPosition] = useState({ top: 0, left: 0 }); // State to track input position
+  const [questions, setQuestions] = useState([]);
 
   const messagesEndRef = useRef(null);
-
-  const stopWords = ['i', 'do', 'how', 'is', 'what', 'where', 'who', 'why', 'the', 'a', 'an'];
+  const inputRef = useRef(null);
 
   useEffect(() => {
     fetchMessages();
+    // Add event listener to listen for clicks on the document body
+    document?.body?.addEventListener('click', handleClickOutside);
+    return () => {
+      // Clean up event listener when component unmounts
+      document?.body?.removeEventListener('click', handleClickOutside);
+    };
   }, []);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    // Update input position on component mount
+    updateInputPosition();
+  }, []);
+
+  const updateInputPosition = () => {
+    if (inputRef?.current) {
+      const { top, left } = inputRef?.current?.getBoundingClientRect() || {};
+      setInputPosition({ top, left });
+    }
+  };
+
   const fetchMessages = async () => {
     try {
       const response = await axios.get("http://localhost:5000/api");
-      setMessages(response.data.items || []);
+      setMessages(response?.data?.items || []);
     } catch (error) {
       console.error("Error fetching messages:", error);
       setMessages([]);
@@ -47,7 +65,7 @@ function App() {
   };
 
   const handleChange = (e) => {
-    const value = e.target.value;
+    const value = e?.target?.value;
     setUserInput(value);
     if (value.trim() === '') {
       setSuggestions([]); // Clear suggestions
@@ -59,17 +77,16 @@ function App() {
   
   
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();  // Prevent the default form submit behavior
-    if (!userInput.trim()) return;  // Check if the userInput is not just whitespace
-  
+  const onSubmit = async (value) => {
     setIsSubmitting(true);
+    setQuestions([]);
     try {
       const response = await axios.post("http://localhost:5000/api/ask", {
-        data: userInput,
+        data: value,
       });
-      setMessages([...response.data.items]);
-      setUserInput("");  // Clear the input after submitting
+      setMessages([...response?.data?.items]);
+      setQuestions(response?.data?.questions);
+      setUserInput("");
     } catch (error) {
       console.error("Error submitting message:", error);
     } finally {
@@ -77,6 +94,11 @@ function App() {
     }
   };
   
+
+  const handleSubmit = (e) => {
+    e?.preventDefault();
+    onSubmit(userInput.trim());
+  };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -86,56 +108,53 @@ function App() {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleSuggestions = debounce(async (inputVal) => {
+    // Clear suggestions and hide suggestion box if input is empty
     if (!inputVal.trim()) {
+      setSuggestions([]);
       setShowSuggestions(false);
-    } else {
-      fetch('keywords.csv')
-        .then(response => response.text())
-        .then(data => {
-          const parsedData = Papa.parse(data, {
-            header: false,
-            skipEmptyLines: true
-          });
-
-          let foundWords = [];
-
-          const exactMatch = parsedData.data.filter(row => {
-            return row[2].toLowerCase() === inputVal.toLowerCase();
-          });
-
-          const partialMatch = parsedData.data.filter(row => {
-            return row[2].toLowerCase().includes(inputVal.toLowerCase());
-          });
-
-          const wordBoundaryMatch = parsedData.data.filter(row => {
-            const words = row[2].toLowerCase().split(' ');
-            return words.includes(inputVal.toLowerCase());
-          });
-
-          const regex = new RegExp(`\\b${inputVal.toLowerCase()}\\b`);
-          const regexMatch = parsedData.data.filter(row => {
-            return regex.test(row[2].toLowerCase());
-          });
-
-          const allMatches = [...exactMatch, ...partialMatch, ...wordBoundaryMatch, ...regexMatch];
-          const filteredSuggestions = allMatches.map(row => row[0]);
-
-          setSuggestions(filteredSuggestions.slice(0, 6));
-          setShowSuggestions(filteredSuggestions.length > 0);
-
-          console.log("Suggestions:", filteredSuggestions);
-          console.log("Triggered by words:", [...new Set(foundWords)]);
-        });
+      return;
+    }
+  
+    try {
+      const response = await fetch('keywords.csv');
+      const data = await response.text();
+      const parsedData = Papa.parse(data, {
+        header: false,
+        skipEmptyLines: true
+      });
+  
+      const filteredSuggestions = parsedData.data.reduce((acc, row) => {
+        const lowerCaseInputVal = inputVal.toLowerCase();
+        const lowerCaseRow = row[2].toLowerCase();
+        if (lowerCaseRow.includes(lowerCaseInputVal)) {
+          acc.push(row[0]);
+        }
+        return acc;
+      }, []);
+  
+      setSuggestions(filteredSuggestions.slice(0, 6));
+      setShowSuggestions(filteredSuggestions.length > 0);
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
     }
   }, 300);
+  
+  
 
   const handleSuggestionClick = (suggestion) => {
     setUserInput(suggestion);
     setShowSuggestions(false);
+  };
+
+  const handleClickOutside = (e) => {
+    // Check if the click target is not inside the inputRef
+    if (inputRef.current && !inputRef.current.contains(e.target)) {
+      setShowSuggestions(false);
+    }
   };
 
   // Function to toggle dark theme
@@ -144,14 +163,96 @@ function App() {
   };
 
   return (
-    <div className={`App ${darkTheme ? 'dark-theme' : ''}`} style={{ background: darkTheme ? "#222" : "white", minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
-      <Container
-        maxWidth="md"
+    <div className={`App ${darkTheme ? 'dark-theme' : ''}`} style={{background: darkTheme ? "#222" : "white", minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+<Container
+  maxWidth="md"
+  style={{
+    position: "fixed",
+    top: 0,
+    width: "100%",
+    background: darkTheme ? "#222" : "#f5f5f5",
+    padding: "20px",
+    borderRadius: "8px",
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+    zIndex: 1000, // Ensure it appears above other content
+  }}
+>
+  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+    <a href="https://www.swinburneonline.edu.au/faqs/" target="_blank" rel="noopener noreferrer">
+      <img src={logo} alt="Logo" style={{ width: "100px" }} />
+    </a>
+    <Typography variant="h4" style={{ color: darkTheme ? "#fff" : "#4285f4" }}>
+      Swinburne ChatBot
+    </Typography>
+  </div>
+
+  <Box
+    display="flex"
+    flexDirection="column"
+    minHeight="60vh"
+    maxHeight="60vh"
+    overflow="auto"
+    style={{
+      border: `1px solid ${darkTheme ? "#555" : "#dadce0"}`,
+      borderRadius: "8px",
+      padding: "10px",
+      backgroundColor: darkTheme ? "#444" : "white",
+    }}
+  >
+    {messages.map((message, index) => (
+      <Message key={index} message={message} />
+    ))}
+    <div className="quesions-wrap">
+      {questions?.map((question) => (
+        <Button
+          className="question-item"
+          variant="outlined"
+          size="small"
+          onClick={() => onSubmit(question)}
+        >
+          {question}
+        </Button>
+      ))}
+    </div>
+    <div ref={messagesEndRef} />
+  </Box>
+
+  <form onSubmit={handleSubmit} style={{ marginTop: "20px" }}>
+  <TextField
+  inputRef={inputRef}
+  multiline
+  rows={2}
+  variant="outlined"
+  value={userInput}
+  onChange={handleChange}
+  onKeyPress={handleKeyPress}
+  onFocus={(e) => {
+    if (userInput.trim() !== '') {
+      setShowSuggestions(true);
+      handleSuggestions(userInput);
+    }
+  }}
+  disabled={isSubmitting}
+  fullWidth
+  style={{
+    backgroundColor: darkTheme ? "#555" : "white",
+    borderRadius: "4px",
+    marginBottom: "10px",
+  }}
+/>
+
+
+    {showSuggestions && (
+      <ul 
         style={{
-          padding: "20px",
-          borderRadius: "8px",
-          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-          position: "relative",
+          position: "fixed",
+          top: inputPosition?.top + inputRef?.current?.clientHeight + 10, // Adjust 10 as needed
+          left: inputPosition?.left,
+          width: inputRef?.current?.clientWidth,
+          backgroundColor: darkTheme ? "#555" : "white",
+          borderRadius: "4px",
+          border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`,
+          zIndex: 1
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", alignItems:"center"}}>
@@ -224,7 +325,7 @@ function App() {
       variant="contained"
       color="primary"
       type="submit"
-      disabled={isSubmitting}
+      disabled={isSubmitting || !userInput.trim()?.length}
       style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "rgb(235 39 62)", color: "#fff", marginTop: "10px" }}
     >
       {isSubmitting ? "Submitting" : "Submit"}
@@ -233,9 +334,9 @@ function App() {
       {darkTheme ? "Switch to Light Theme" : "Switch to Dark Theme"}
     </Button>
   </Box>
+  </form>
+</ul>)}
 </form>
-
-
       </Container>
     </div>
   );
@@ -251,10 +352,11 @@ const Message = ({ message }) => (
         borderRadius: "4px",
       }}
     >
-      <strong>{message.type === "ai" ? "Swinbot" : "User"}:</strong>{" "}
+      <strong>{message.type === "ai" ? "Swinbot" : "You"}:</strong>{" "}
       {message.content}
     </Typography>
   </Box>
 );
 
 export default App;
+

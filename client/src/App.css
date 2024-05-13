@@ -85,3 +85,13 @@ body {
 h1 {
   font-weight: 700;
 }
+
+.quesions-wrap {
+  display: flex;
+  justify-content: space-evenly;
+}
+
+.question-item {
+  display: inline-block;
+  margin: 0 10px !important;
+}

@@ -1,7 +1,9 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import openai
-from langsmith.client import Client
+import re
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_community.document_loaders import WebBaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -11,22 +13,20 @@ from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-import spacy
-import csv  # Import the csv module
-import os
-
 
 website_url = "https://www.swinburneonline.edu.au/faqs/"
 
 load_dotenv()
-client = Client()
+
+OUT_OF_SCOPE_MESSAGE = "Apologies, but that's outside my current area of expertise."
 
 RESPONSE_TEMPLATE = """
-Given the dataset provided and the below context:\n\n{context}, generate responses exclusively from the information within the dataset. Ignore any external sources or internet data. If the answer cannot be found, respond with "Umm, I don't know".
+Given the dataset provided and the below context:\n\n{context}, generate detailed responses exclusively from the information within the dataset. Ignore any external sources or internet data. If the answer cannot be found, respond with "Apologies, but that's outside my current area of expertise.".
 """
 
 
 def get_fine_tuned_model():
+    # Get fine-tuned model from OPENAI
     job_id = "ftjob-5oOfnTxIvxkkFUwllHXubVGn"
     job = openai.fine_tuning.jobs.retrieve(job_id)
     return job.fine_tuned_model
@@ -36,60 +36,130 @@ fine_tuned_model = get_fine_tuned_model()
 
 
 def get_vectorstore_from_url(url):
+    # Load document from URL
     loader = WebBaseLoader(url)
     document = loader.load()
 
+    # Split document into chunks
     text_splitter = RecursiveCharacterTextSplitter()
     document_chunks = text_splitter.split_documents(document)
 
+    # Create vector store from chunks
     vector_store = Chroma.from_documents(document_chunks, OpenAIEmbeddings())
 
     return vector_store
 
 
+def get_similar_questions(user_input, vector_store, top_n):
+    questions = []
+    retriever = vector_store.as_retriever(
+        search_type="similarity_score_threshold", search_kwargs={"score_threshold": 0.7, "k": 1})
+    docs = retriever.invoke(user_input)
+    if (len(docs) > 0):
+        question_pattern = r'^\s*Q[.:]?\s*(.*)$'
+        questions = re.findall(
+            question_pattern, docs[0].page_content, re.MULTILINE)
+
+    # Vectorize the user input and questions
+    vectorizer = TfidfVectorizer()
+    X = vectorizer.fit_transform([user_input] + questions)
+
+    # Calculate cosine similarity between user input and each question
+    similarities = cosine_similarity(X[0], X[1:])
+
+    # Rank questions based on similarity scores
+    ranked_questions = [(question, score)
+                        for question, score in zip(questions, similarities[0])]
+    ranked_questions.sort(key=lambda x: x[1], reverse=True)
+
+    # Exclude the top 1 question
+    ranked_questions = ranked_questions[1:]
+
+    # Return next top N relevant questions
+    top_questions = [question[0] for question in ranked_questions[:top_n]]
+
+    return top_questions
+
+
+def get_retriever(vector_store):
+    # Get retriver from vector store, set similarity score threshold to be 0.7
+    return vector_store.as_retriever(
+        search_type="similarity_score_threshold", search_kwargs={"score_threshold": 0.7})
+
+
+def check_similarity(user_input, vector_store):
+    retriever = get_retriever(vector_store)
+    # Get relevant docs
+    docs = retriever.invoke(user_input)
+    # Return true if there are any relevant doc to user_input
+    return len(docs) > 0
+
+
 def get_context_retriever_chain(vector_store, model):
+    # Large language model
     llm = ChatOpenAI(model=model, temperature=0)
 
-    retriever = vector_store.as_retriever()
+    retriever = get_retriever(vector_store)
 
-    prompt = ChatPromptTemplate.from_messages([
+    # Prompt to get relevant text
+    search_query_prompt = ChatPromptTemplate.from_messages([
+        MessagesPlaceholder(variable_name="chat_history"),
         ("user", "{input}"),
         ("user", "Given the above conversation, generate a search query to look up in order to get information relevant to the conversation")
     ])
 
-    retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
+    # Context retriever chain with history
+    retriever_chain = create_history_aware_retriever(
+        llm, retriever, search_query_prompt)
 
     return retriever_chain
 
 
 def get_conversational_rag_chain(retriever_chain, model):
+    # Large language model
     llm = ChatOpenAI(model=model, temperature=0)
 
-    prompt = ChatPromptTemplate.from_messages([
+    # Prompt to get the most relevant response
+    answer_query_prompt = ChatPromptTemplate.from_messages([
         ("system", RESPONSE_TEMPLATE),
+        MessagesPlaceholder(variable_name="chat_history"),
         ("user", "{input}"),
     ])
 
-    stuff_documents_chain = create_stuff_documents_chain(llm, prompt)
+    # Stuff documents chain
+    stuff_documents_chain = create_stuff_documents_chain(
+        llm, answer_query_prompt)
 
+    # Return retrieval chain from retriever chain and stuff documents chain
     return create_retrieval_chain(retriever_chain, stuff_documents_chain)
 
 
 def get_response(user_input):
+    # Check if question is in scope
+    is_in_scope = check_similarity(user_input, vector_store)
+
+    # Return out of scope message
+    if not is_in_scope:
+        return OUT_OF_SCOPE_MESSAGE
+
+    # Proceed to get response if in scope
     retriever_chain = get_context_retriever_chain(
         vector_store, fine_tuned_model)
     conversation_rag_chain = get_conversational_rag_chain(
         retriever_chain, fine_tuned_model)
 
+    # Get the most relevant response for given chat history and user input
     response = conversation_rag_chain.invoke({
+        "chat_history": chat_history,
         "input": user_input
     })
-
     return response['answer']
 
 
+# Create vector store from data retrieved from website url
 vector_store = get_vectorstore_from_url(website_url)
 
+# Chat history to store all conversation
 chat_history = [
     AIMessage(content="Hello, I am Swinbot. How can I help you?", type='ai'),
 ]
@@ -102,7 +172,8 @@ def getChatHistory():
             'type': message.type,
             'content': message.content
         })
-    return jsonify({"items": result})
+    # Return chat history as json
+    return result
 
 
 app = Flask(__name__)
@@ -111,63 +182,21 @@ CORS(app)
 
 @app.route('/api')
 def api():
-    return getChatHistory()
+    return jsonify({"items": getChatHistory()})
 
 
 @app.route('/api/ask', methods=['POST'])
 def ask():
+    # Get user input from client side
     user_input = request.get_json().get('data')
+    # Generate the most relevant response
     bot_response = get_response(user_input)
+    # Add user input and response to chat history
     chat_history.append(HumanMessage(content=user_input, type='human'))
     chat_history.append(AIMessage(content=bot_response, type='ai'))
-
-    return getChatHistory()
-
-
-nlp = spacy.load("en_core_web_md")
-
-# Function to calculate word similarity and generate suggestions
-
-# Load questions from CSV file and extract them as vocabulary
-
-
-def load_vocabulary_from_csv(csv_file):
-    vocabulary = []
-    # Get the absolute path to the CSV file
-    csv_file_path = os.path.join(os.path.dirname(__file__), csv_file)
-    with open(csv_file_path, newline='', encoding='utf-8') as file:  # Specify encoding as 'utf-8'
-        reader = csv.reader(file)
-        for row in reader:
-            question = row[0].strip()  # Assuming questions are in column A
-            vocabulary.append(question)
-    return vocabulary
-
-
-def generate_suggestions(user_input, vocabulary, limit=5):
-    processed_input = nlp(user_input.lower())
-    suggestions = []
-
-    for word in vocabulary:
-        similarity = nlp(word).similarity(processed_input)
-        suggestions.append((word, similarity))
-
-    suggestions.sort(key=lambda x: x[1], reverse=True)
-    return [suggestion[0] for suggestion in suggestions[:limit]]
-
-
-# Load vocabulary from CSV file
-csv_file_path = "data.csv"  # Adjust the path to your CSV file
-vocabulary = load_vocabulary_from_csv(csv_file_path)
-
-
-@app.route('/api/word_suggestions', methods=['POST'])
-def word_suggestions():
-    try:
-        user_input = request.json.get('user_input')
-        suggestions = generate_suggestions(user_input, vocabulary)
-        return jsonify({"suggestions": suggestions})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    # Get suggestion questions
+    questions = get_similar_questions(user_input, vector_store, 3)
+    return jsonify({"items": getChatHistory(), "questions": questions})
 
 
 if __name__ == '__main__':
