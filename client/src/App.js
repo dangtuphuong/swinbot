@@ -68,11 +68,14 @@ function App() {
     const value = e?.target?.value;
     setUserInput(value);
     if (value.trim() === '') {
+      setSuggestions([]); // Clear suggestions
       setShowSuggestions(false);
     } else {
       handleSuggestions(value);
     }
   };
+  
+  
 
   const onSubmit = async (value) => {
     setIsSubmitting(true);
@@ -90,6 +93,7 @@ function App() {
       setIsSubmitting(false);
     }
   };
+  
 
   const handleSubmit = (e) => {
     e?.preventDefault();
@@ -159,7 +163,7 @@ function App() {
   };
 
   return (
-    <div className={`App ${darkTheme ? 'dark-theme' : ''}`} style={{background: darkTheme ? "#222" : "#f5f5f5", minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+    <div className={`App ${darkTheme ? 'dark-theme' : ''}`} style={{background: darkTheme ? "#222" : "white", minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
 <Container
   maxWidth="md"
   style={{
@@ -173,113 +177,88 @@ function App() {
     zIndex: 1000, // Ensure it appears above other content
   }}
 >
-  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-    <a href="https://www.swinburneonline.edu.au/faqs/" target="_blank" rel="noopener noreferrer">
-      <img src={logo} alt="Logo" style={{ width: "100px" }} />
-    </a>
-    <Typography variant="h4" style={{ color: darkTheme ? "#fff" : "#4285f4" }}>
-      Swinburne ChatBot
-    </Typography>
-  </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", alignItems:"center"}}>
+          <a href="https://www.swinburneonline.edu.au/faqs/" target="_blank" rel="noopener noreferrer">
+            <img src={logo} alt="Logo" style={{ width: "100px" }} />
+          </a>
+          <Typography variant="h4" style={{ color: darkTheme ? "#fff" : "rgb(235 39 62)", fontWeight: "600" }}>
+            SWINBURNE CHATBOT
+          </Typography>
+        </div>
 
-  <Box
-    display="flex"
-    flexDirection="column"
-    minHeight="60vh"
-    maxHeight="60vh"
-    overflow="auto"
-    style={{
-      border: `1px solid ${darkTheme ? "#555" : "#dadce0"}`,
-      borderRadius: "8px",
-      padding: "10px",
-      backgroundColor: darkTheme ? "#444" : "white",
-    }}
-  >
-    {messages.map((message, index) => (
-      <Message key={index} message={message} />
-    ))}
-    <div className="quesions-wrap">
-      {questions?.map((question) => (
-        <Button
-          className="question-item"
-          variant="outlined"
-          size="small"
-          onClick={() => onSubmit(question)}
+        <Box
+          display="flex"
+          flexDirection="column"
+          minHeight="60vh"
+          maxHeight="60vh"
+          overflow="auto"
+          style={{
+            border: `1px solid ${darkTheme ? "#555" : "#dadce0"}`,
+            borderRadius: "8px",
+            padding: "10px",
+            backgroundColor: darkTheme ? "#444" : "white",
+          }}
         >
-          {question}
-        </Button>
-      ))}
-    </div>
-    <div ref={messagesEndRef} />
+          {messages.map((message, index) => (
+            <Message key={index} message={message} />
+          ))}
+          <div ref={messagesEndRef} />
+        </Box>
+
+        <form onSubmit={handleSubmit} style={{ marginTop: "20px", position: "relative" }}>
+        <TextField
+          multiline
+          rows={3}
+          variant="outlined"
+          value={userInput}
+          onChange={handleChange}
+          onKeyPress={handleKeyPress}
+          disabled={isSubmitting}
+          fullWidth
+          style={{
+            backgroundColor: darkTheme ? "#555" : "white",
+            borderRadius: "4px",
+            marginBottom: "10px",
+            
+          }}
+          onBlur={() => {
+            // Delay hiding suggestions to allow time for onClick to fire in dropdown
+            setTimeout(() => setShowSuggestions(false), 100);
+          }}
+          onFocus={() => {
+            if (userInput.trim() !== '') {
+              setShowSuggestions(true);
+            }
+          }}
+        />
+
+        {showSuggestions && suggestions.length > 0 && (
+          <ul style={{ position: "absolute", top: "101px", left: 0, width: "100%", backgroundColor: darkTheme ? "#555" : "white", borderRadius: "4px", border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`, zIndex: 1 }}>
+            {suggestions.map((suggestion, index) => (
+              <li key={index} onClick={() => handleSuggestionClick(suggestion)} style={{ color: darkTheme ? "#fff" : "#333" }}>
+                {suggestion}
+              </li>
+            ))}
+          </ul>
+        )}
+
+  <Box className="buttons_last" style={{display:"flex",justifyContent:"space-between", alignItems:"center"}}>
+    <Button
+      variant="contained"
+      color="primary"
+      type="submit"
+      disabled={isSubmitting || !userInput.trim()?.length}
+      style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "rgb(235 39 62)", color: "#fff", marginTop: "10px" }}
+    >
+      {isSubmitting ? "Submitting" : "Submit"}
+    </Button>
+    <Button variant="outlined" onClick={toggleDarkTheme} style={{ marginTop: "20px", color: darkTheme ? "#fff" : "#333", borderColor: darkTheme ? "#fff" : "#333" }}>
+      {darkTheme ? "Switch to Light Theme" : "Switch to Dark Theme"}
+    </Button>
   </Box>
-
-  <form onSubmit={handleSubmit} style={{ marginTop: "20px" }}>
-  <TextField
-  inputRef={inputRef}
-  multiline
-  rows={2}
-  variant="outlined"
-  value={userInput}
-  onChange={handleChange}
-  onKeyPress={handleKeyPress}
-  onFocus={(e) => {
-    if (userInput.trim() !== '') {
-      setShowSuggestions(true);
-      handleSuggestions(userInput);
-    }
-  }}
-  disabled={isSubmitting}
-  fullWidth
-  style={{
-    backgroundColor: darkTheme ? "#555" : "white",
-    borderRadius: "4px",
-    marginBottom: "10px",
-  }}
-/>
-
-
-    {showSuggestions && (
-      <ul 
-        style={{
-          position: "fixed",
-          top: inputPosition?.top + inputRef?.current?.clientHeight + 10, // Adjust 10 as needed
-          left: inputPosition?.left,
-          width: inputRef?.current?.clientWidth,
-          backgroundColor: darkTheme ? "#555" : "white",
-          borderRadius: "4px",
-          border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`,
-          zIndex: 1
-        }}
-      >
-        {suggestions.map((suggestion, index) => (
-          <li key={index} onClick={() => handleSuggestionClick(suggestion)} style={{ color: darkTheme ? "#fff" : "#333" }}>
-            {suggestion}
-          </li>
-        ))}
-      </ul>
-    )}
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <Button
-        variant="contained"
-        color="primary"
-        type="submit"
-        disabled={isSubmitting || !userInput.trim()?.length}
-        style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "#1976d2", color: "#fff", marginTop: "10px" }}
-      >
-        {isSubmitting ? "Submitting" : "Submit"}
-      </Button>
-      <Button
-        variant="outlined"
-        onClick={toggleDarkTheme}
-        style={{ marginTop: "20px", color: darkTheme ? "#fff" : "#333", borderColor: darkTheme ? "#fff" : "#333" }}
-      >
-        {darkTheme ? "Switch to Light Theme" : "Switch to Dark Theme"}
-      </Button>
-    </div>
   </form>
-
-</Container>
-    </div>
+ </Container>
+  </div>
   );
 }
 
