@@ -210,10 +210,12 @@ function App() {
   value={userInput}
   onChange={handleChange}
   onKeyPress={handleKeyPress}
-  onFocus={(e) => {
+  onFocus={() => {
     if (userInput.trim() !== '') {
       setShowSuggestions(true);
       handleSuggestions(userInput);
+    } else {
+      setShowSuggestions(false);
     }
   }}
   disabled={isSubmitting}
