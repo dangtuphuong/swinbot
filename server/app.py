@@ -52,6 +52,7 @@ def get_vectorstore_from_url(url):
 
 def get_similar_questions(user_input, vector_store, top_n):
     questions = []
+    top_questions = []
     retriever = vector_store.as_retriever(
         search_type="similarity_score_threshold", search_kwargs={"score_threshold": 0.7, "k": 1})
     docs = retriever.invoke(user_input)
@@ -61,30 +62,31 @@ def get_similar_questions(user_input, vector_store, top_n):
             question_pattern, docs[0].page_content, re.MULTILINE)
 
     # Vectorize the user input and questions
-    vectorizer = TfidfVectorizer()
-    X = vectorizer.fit_transform([user_input] + questions)
+    if (len(questions) > 0):
+        vectorizer = TfidfVectorizer()
+        X = vectorizer.fit_transform([user_input] + questions)
 
-    # Calculate cosine similarity between user input and each question
-    similarities = cosine_similarity(X[0], X[1:])
+        # Calculate cosine similarity between user input and each question
+        similarities = cosine_similarity(X[0], X[1:])
 
-    # Rank questions based on similarity scores
-    ranked_questions = [(question, score)
-                        for question, score in zip(questions, similarities[0])]
-    ranked_questions.sort(key=lambda x: x[1], reverse=True)
+        # Rank questions based on similarity scores
+        ranked_questions = [(question, score)
+                            for question, score in zip(questions, similarities[0])]
+        ranked_questions.sort(key=lambda x: x[1], reverse=True)
 
-    # Exclude the top 1 question
-    ranked_questions = ranked_questions[1:]
+        # Exclude the top 1 question
+        ranked_questions = ranked_questions[1:]
 
-    # Return next top N relevant questions
-    top_questions = [question[0] for question in ranked_questions[:top_n]]
+        # Return next top N relevant questions
+        top_questions = [question[0] for question in ranked_questions[:top_n]]
 
     return top_questions
 
 
 def get_retriever(vector_store):
-    # Get retriver from vector store, set similarity score threshold to be 0.7
+    # Get retriver from vector store, set similarity score threshold to be 0.6
     return vector_store.as_retriever(
-        search_type="similarity_score_threshold", search_kwargs={"score_threshold": 0.7})
+        search_type="similarity_score_threshold", search_kwargs={"score_threshold": 0.6})
 
 
 def check_similarity(user_input, vector_store):
@@ -140,7 +142,7 @@ def get_response(user_input):
 
     # Return out of scope message
     if not is_in_scope:
-        return OUT_OF_SCOPE_MESSAGE
+        return {"answer": OUT_OF_SCOPE_MESSAGE, "questions": []}
 
     # Proceed to get response if in scope
     retriever_chain = get_context_retriever_chain(
@@ -153,7 +155,11 @@ def get_response(user_input):
         "chat_history": chat_history,
         "input": user_input
     })
-    return response['answer']
+
+    # Get suggestion questions
+    questions = get_similar_questions(user_input, vector_store, 3)
+
+    return {"answer": response['answer'], "questions": questions}
 
 
 # Create vector store from data retrieved from website url
@@ -189,14 +195,15 @@ def api():
 def ask():
     # Get user input from client side
     user_input = request.get_json().get('data')
-    # Generate the most relevant response
+    # Generate the most relevant response and next relevant questions
     bot_response = get_response(user_input)
+    bot_answer = bot_response["answer"]
+    bot_questions = bot_response["questions"]
     # Add user input and response to chat history
     chat_history.append(HumanMessage(content=user_input, type='human'))
-    chat_history.append(AIMessage(content=bot_response, type='ai'))
-    # Get suggestion questions
-    questions = get_similar_questions(user_input, vector_store, 3)
-    return jsonify({"items": getChatHistory(), "questions": questions})
+    chat_history.append(AIMessage(content=bot_answer, type='ai'))
+
+    return jsonify({"items": getChatHistory(), "questions": bot_questions})
 
 
 if __name__ == '__main__':

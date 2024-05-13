@@ -42,6 +42,17 @@ function App() {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    // Update input position on component mount
+    updateInputPosition();
+  }, []);
+
+  const updateInputPosition = () => {
+    if (inputRef?.current) {
+      const { top, left } = inputRef?.current?.getBoundingClientRect() || {};
+      setInputPosition({ top, left });
+    }
+  };
 
   useEffect(() => {
     if (listening) {
@@ -69,13 +80,12 @@ function App() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!userInput.trim()) return;
+  const onSubmit = async (value) => {
     setIsSubmitting(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/ask", { data: userInput });
+      const response = await axios.post("http://localhost:5000/api/ask", { data: value });
       setMessages([...response.data.items]);
+      setQuestions(response?.data?.questions);
       setUserInput("");
       resetTranscript();
     } catch (error) {
@@ -83,6 +93,11 @@ function App() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = (e) => {
+    e?.preventDefault();
+    onSubmit(userInput.trim());
   };
 
   const handleKeyPress = (e) => {
@@ -101,7 +116,7 @@ function App() {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleSuggestions = debounce(async (inputVal) => {
@@ -112,10 +127,22 @@ function App() {
     try {
       const response = await fetch('keywords.csv');
       const data = await response.text();
-      const parsedData = Papa.parse(data, { header: false, skipEmptyLines: true });
-      const filteredSuggestions = parsedData.data.filter(row => row[2].toLowerCase().includes(inputVal.toLowerCase())).map(row => row[0]);
+      const parsedData = Papa.parse(data, {
+        header: false,
+        skipEmptyLines: true
+      });
+
+      const filteredSuggestions = parsedData.data.reduce((acc, row) => {
+        const lowerCaseInputVal = inputVal.toLowerCase();
+        const lowerCaseRow = row[2].toLowerCase();
+        if (lowerCaseRow.includes(lowerCaseInputVal)) {
+          acc.push(row[0]);
+        }
+        return acc;
+      }, []);
+
       setSuggestions(filteredSuggestions.slice(0, 6));
-      setShowSuggestions(true);
+      setShowSuggestions(filteredSuggestions.length > 0);
     } catch (error) {
       console.error("Error fetching suggestions:", error);
     }
@@ -127,7 +154,8 @@ function App() {
   };
 
   const handleClickOutside = (e) => {
-    if (!inputRef.current.contains(e.target)) {
+    // Check if the click target is not inside the inputRef
+    if (inputRef.current && !inputRef.current.contains(e.target)) {
       setShowSuggestions(false);
     }
   };
@@ -149,6 +177,18 @@ function App() {
           {messages.map((message, index) => (
             <Message key={index} message={message} />
           ))}
+          <div className="quesions-wrap">
+            {questions?.map((question) => (
+              <Button
+                className="question-item"
+                variant="outlined"
+                size="small"
+                onClick={() => onSubmit(question)}
+              >
+                {question}
+              </Button>
+            ))}
+          </div>
           <div ref={messagesEndRef} />
         </Box>
         <form onSubmit={handleSubmit} style={{ marginTop: "20px", position: "relative" }}>
