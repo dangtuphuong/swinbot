@@ -23,6 +23,7 @@ function App() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false); // State for dark theme
   const [inputPosition, setInputPosition] = useState({ top: 0, left: 0 }); // State to track input position
+  const [questions, setQuestions] = useState([]);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -30,10 +31,10 @@ function App() {
   useEffect(() => {
     fetchMessages();
     // Add event listener to listen for clicks on the document body
-    document.body.addEventListener('click', handleClickOutside);
+    document?.body?.addEventListener('click', handleClickOutside);
     return () => {
       // Clean up event listener when component unmounts
-      document.body.removeEventListener('click', handleClickOutside);
+      document?.body?.removeEventListener('click', handleClickOutside);
     };
   }, []);
 
@@ -47,8 +48,8 @@ function App() {
   }, []);
 
   const updateInputPosition = () => {
-    if (inputRef.current) {
-      const { top, left } = inputRef.current.getBoundingClientRect();
+    if (inputRef?.current) {
+      const { top, left } = inputRef?.current?.getBoundingClientRect() || {};
       setInputPosition({ top, left });
     }
   };
@@ -56,7 +57,7 @@ function App() {
   const fetchMessages = async () => {
     try {
       const response = await axios.get("http://localhost:5000/api");
-      setMessages(response.data.items || []);
+      setMessages(response?.data?.items || []);
     } catch (error) {
       console.error("Error fetching messages:", error);
       setMessages([]);
@@ -64,7 +65,7 @@ function App() {
   };
 
   const handleChange = (e) => {
-    const value = e.target.value;
+    const value = e?.target?.value;
     setUserInput(value);
     if (value.trim() === '') {
       setShowSuggestions(false);
@@ -73,27 +74,26 @@ function App() {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    // Trim the userInput to remove leading and trailing whitespace
-    const trimmedInput = userInput.trim();
-    // Check if the trimmed input is empty
-    if (trimmedInput === '') {
-      // If it's empty, return from the function without submitting
-      return;
-    }
+  const onSubmit = async (value) => {
     setIsSubmitting(true);
+    setQuestions([]);
     try {
       const response = await axios.post("http://localhost:5000/api/ask", {
-        data: trimmedInput,
+        data: value,
       });
-      setMessages([...response.data.items]);
+      setMessages([...response?.data?.items]);
+      setQuestions(response?.data?.questions);
       setUserInput("");
     } catch (error) {
       console.error("Error submitting message:", error);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = (e) => {
+    e?.preventDefault();
+    onSubmit(userInput.trim());
   };
 
   const handleKeyPress = (e) => {
@@ -104,7 +104,7 @@ function App() {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   const handleSuggestions = debounce(async (inputVal) => {
@@ -198,6 +198,18 @@ function App() {
     {messages.map((message, index) => (
       <Message key={index} message={message} />
     ))}
+    <div className="quesions-wrap">
+      {questions?.map((question) => (
+        <Button
+          className="question-item"
+          variant="outlined"
+          size="small"
+          onClick={() => onSubmit(question)}
+        >
+          {question}
+        </Button>
+      ))}
+    </div>
     <div ref={messagesEndRef} />
   </Box>
 
@@ -232,9 +244,9 @@ function App() {
       <ul 
         style={{
           position: "fixed",
-          top: inputPosition.top + inputRef.current.clientHeight + 10, // Adjust 10 as needed
-          left: inputPosition.left,
-          width: inputRef.current.clientWidth,
+          top: inputPosition?.top + inputRef?.current?.clientHeight + 10, // Adjust 10 as needed
+          left: inputPosition?.left,
+          width: inputRef?.current?.clientWidth,
           backgroundColor: darkTheme ? "#555" : "white",
           borderRadius: "4px",
           border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`,
@@ -253,7 +265,7 @@ function App() {
         variant="contained"
         color="primary"
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !userInput.trim()?.length}
         style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "#1976d2", color: "#fff", marginTop: "10px" }}
       >
         {isSubmitting ? "Submitting" : "Submit"}
@@ -283,7 +295,7 @@ const Message = ({ message }) => (
         borderRadius: "4px",
       }}
     >
-      <strong>{message.type === "ai" ? "Swinbot" : "User"}:</strong>{" "}
+      <strong>{message.type === "ai" ? "Swinbot" : "You"}:</strong>{" "}
       {message.content}
     </Typography>
   </Box>
