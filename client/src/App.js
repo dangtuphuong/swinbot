@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { Container, Typography, TextField, Button, Box, CircularProgress } from "@mui/material";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMicrophone, faMicrophoneSlash } from '@fortawesome/free-solid-svg-icons';
 import logo from "./logo.png";
 import Papa from 'papaparse';
 import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
@@ -184,6 +186,7 @@ function App() {
                 className="question-item"
                 variant="outlined"
                 size="small"
+                style={{color:'rgb(235 39 62)',border:"1px solid rgb(235 39 62)"}}
                 onClick={() => onSubmit(question)}
               >
                 {question}
@@ -202,22 +205,23 @@ function App() {
             </ul>
           )}
           <Box className="buttons_last" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Button variant="contained" color="primary" type="submit" disabled={isSubmitting || !userInput.trim()} style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "rgb(235 39 62)", color: "#fff", marginTop: "10px" }}>{isSubmitting ? <CircularProgress size={24} style={{ color: "white" }} /> : "Submit"}</Button>
+            <Button variant="contained"  type="submit" disabled={isSubmitting || !userInput.trim()} style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "rgb(235 39 62)", color: "#fff", marginTop: "10px" }}>{isSubmitting ? <CircularProgress size={24} style={{ color: "white" }} /> : "Submit"}</Button>
             <Button
               variant="contained"
-              color="primary"
+              color="secondary"
               type="submit"
-              style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "#1976d2", color: "#fff", marginTop: "10px" }}
+              style={{  backgroundColor: darkTheme ? "#333" : "#fff", color: "rgb(235 39 62)"}}
               className="microphone-button"
               onMouseDown={() => toggleListening('start')}
               onMouseUp={() => toggleListening('stop')}
               onMouseLeave={() => toggleListening('stop')}
             >
-              {listening ? "Listening" : "Hold to Speak"}
+               {listening ? <FontAwesomeIcon icon={faMicrophone} /> : <FontAwesomeIcon icon={faMicrophoneSlash} />}
             </Button>
-            <Button variant="outlined" onClick={toggleDarkTheme} style={{ marginTop: "20px", color: darkTheme ? "#fff" : "#333", borderColor: darkTheme ? "#fff" : "#333" }}>{darkTheme ? "Switch to Light Theme" : "Switch to Dark Theme"}</Button>
+           
           </Box>
         </form>
+        <Button variant="outlined" onClick={toggleDarkTheme} style={{ marginTop: "20px", color: darkTheme ? "#fff" : "#333", borderColor: darkTheme ? "#fff" : "#333" }}>{darkTheme ? "Switch to Light Theme" : "Switch to Dark Theme"}</Button>
       </Container>
     </div>
   );
