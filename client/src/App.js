@@ -119,6 +119,7 @@ function App() {
     messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  //for the inquiry suggestion when user input inquiry to chatbox
   const handleSuggestions = debounce(async (inputVal) => {
     if (!inputVal.trim()) {
       setShowSuggestions(false);
