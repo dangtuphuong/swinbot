@@ -121,6 +121,7 @@ function App() {
     messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  //for the inquiry suggestion when user input inquiry to chatbox
   const handleSuggestions = debounce(async (inputVal) => {
     if (!inputVal.trim()) {
       setShowSuggestions(false);
@@ -196,13 +197,13 @@ function App() {
         </Box>
         <form onSubmit={handleSubmit} style={{ marginTop: "20px", position: "relative" }}>
           <TextField ref={inputRef} multiline rows={3} variant="outlined" value={userInput} onChange={handleChange} onKeyPress={handleKeyPress} disabled={isSubmitting} fullWidth style={{ backgroundColor: darkTheme ? "#555" : "white", borderRadius: "4px", marginBottom: "10px" }} onBlur={() => setTimeout(() => setShowSuggestions(false), 100)} onFocus={() => setShowSuggestions(true)} />
-          {showSuggestions && (
-            <ul style={{ position: "absolute", top: "101px", left: 0, width: "100%", backgroundColor: darkTheme ? "#555" : "white", borderRadius: "4px", border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`, zIndex: 1 }}>
-              {suggestions.map((suggestion, index) => (
-                <li key={index} onClick={() => handleSuggestionClick(suggestion)} style={{ color: darkTheme ? "#fff" : "#333" }}>{suggestion}</li>
-              ))}
-            </ul>
-          )}
+          {showSuggestions && userInput && (
+  <ul style={{ position: "absolute", top: "101px", left: 0, width: "100%", backgroundColor: darkTheme ? "#555" : "white", borderRadius: "4px", border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`, zIndex: 1 }}>
+    {suggestions.map((suggestion, index) => (
+      <li key={index} onClick={() => handleSuggestionClick(suggestion)} style={{ color: darkTheme ? "#fff" : "#333" }}>{suggestion}</li>
+    ))}
+  </ul>
+)}
           <Box className="buttons_last" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Button variant="contained"  type="submit" disabled={isSubmitting || !userInput.trim()} style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "rgb(235 39 62)", color: "#fff", marginTop: "10px" }}>{isSubmitting ? <CircularProgress size={24} style={{ color: "white" }} /> : "Submit"}</Button>
             <Button
