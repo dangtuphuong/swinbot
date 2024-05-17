@@ -167,6 +167,11 @@ function App() {
     setDarkTheme(!darkTheme);
   };
 
+  const onStopListening = () => {
+    toggleListening('stop');
+    resetTranscript();
+  };
+
   return (
     <div className={`App ${darkTheme ? 'dark-theme' : ''}`} style={{ background: darkTheme ? "#222" : "white", minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
       <Container maxWidth="md" style={{ padding: "20px", borderRadius: "8px", boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)", position: "relative" }}>
@@ -213,8 +218,8 @@ function App() {
               style={{  backgroundColor: darkTheme ? "#333" : "#fff", color: "rgb(235 39 62)"}}
               className="microphone-button"
               onMouseDown={() => toggleListening('start')}
-              onMouseUp={() => toggleListening('stop')}
-              onMouseLeave={() => toggleListening('stop')}
+              onMouseUp={onStopListening}
+              onMouseLeave={onStopListening}
             >
                {listening ? <FontAwesomeIcon icon={faMicrophone} /> : <FontAwesomeIcon icon={faMicrophoneSlash} />}
             </Button>
