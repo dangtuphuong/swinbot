@@ -209,7 +209,7 @@ function App() {
             <Button
               variant="contained"
               color="secondary"
-              type="submit"
+              type="button"
               style={{  backgroundColor: darkTheme ? "#333" : "#fff", color: "rgb(235 39 62)"}}
               className="microphone-button"
               onMouseDown={() => toggleListening('start')}
