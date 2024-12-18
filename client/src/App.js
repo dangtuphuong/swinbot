@@ -1,12 +1,24 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import { Container, Typography, TextField, Button, Box, CircularProgress } from "@mui/material";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMicrophone, faMicrophoneSlash } from '@fortawesome/free-solid-svg-icons';
+import {
+  Container,
+  Typography,
+  TextField,
+  Button,
+  Box,
+  CircularProgress,
+} from "@mui/material";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faMicrophone,
+  faMicrophoneSlash,
+} from "@fortawesome/free-solid-svg-icons";
 import logo from "./logo.png";
-import Papa from 'papaparse';
-import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
-import './App.css';
+import Papa from "papaparse";
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
+import "./App.css";
 
 const debounce = (func, delay) => {
   let timeoutId;
@@ -34,9 +46,9 @@ function App() {
 
   useEffect(() => {
     fetchMessages();
-    document.body.addEventListener('click', handleClickOutside);
+    document.body.addEventListener("click", handleClickOutside);
     return () => {
-      document.body.removeEventListener('click', handleClickOutside);
+      document.body.removeEventListener("click", handleClickOutside);
     };
   }, []);
 
@@ -85,7 +97,9 @@ function App() {
   const onSubmit = async (value) => {
     setIsSubmitting(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/ask", { data: value });
+      const response = await axios.post("http://localhost:5000/api/ask", {
+        data: value,
+      });
       setMessages([...response.data.items]);
       setQuestions(response?.data?.questions);
       setUserInput("");
@@ -110,9 +124,9 @@ function App() {
   };
 
   const toggleListening = (action) => {
-    if (action === 'start') {
+    if (action === "start") {
       SpeechRecognition.startListening({ continuous: true });
-    } else if (action === 'stop') {
+    } else if (action === "stop") {
       SpeechRecognition.stopListening();
     }
   };
@@ -128,11 +142,11 @@ function App() {
       return;
     }
     try {
-      const response = await fetch('keywords.csv');
+      const response = await fetch("keywords.csv");
       const data = await response.text();
       const parsedData = Papa.parse(data, {
         header: false,
-        skipEmptyLines: true
+        skipEmptyLines: true,
       });
 
       const filteredSuggestions = parsedData.data.reduce((acc, row) => {
@@ -168,20 +182,68 @@ function App() {
   };
 
   const onStopListening = () => {
-    toggleListening('stop');
+    toggleListening("stop");
     resetTranscript();
   };
 
   return (
-    <div className={`App ${darkTheme ? 'dark-theme' : ''}`} style={{ background: darkTheme ? "#222" : "white", minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
-      <Container maxWidth="md" style={{ padding: "20px", borderRadius: "8px", boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)", position: "relative" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", alignItems: "center" }}>
-          <a href="https://www.swinburneonline.edu.au/faqs/" target="_blank" rel="noopener noreferrer">
+    <div
+      className={`App ${darkTheme ? "dark-theme" : ""}`}
+      style={{
+        background: darkTheme ? "#222" : "white",
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <Container
+        maxWidth="md"
+        style={{
+          padding: "20px",
+          borderRadius: "8px",
+          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "20px",
+            alignItems: "center",
+          }}
+        >
+          <a
+            href="https://www.swinburneonline.edu.au/faqs/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <img src={logo} alt="Logo" style={{ width: "100px" }} />
           </a>
-          <Typography variant="h4" style={{ color: darkTheme ? "#fff" : "rgb(235 39 62)", fontWeight: "600" }}>SWINBURNE CHATBOT</Typography>
+          <Typography
+            variant="h4"
+            style={{
+              color: darkTheme ? "#fff" : "rgb(235 39 62)",
+              fontWeight: "600",
+            }}
+          >
+            SWINBURNE CHATBOT
+          </Typography>
         </div>
-        <Box display="flex" flexDirection="column" minHeight="60vh" maxHeight="60vh" overflow="auto" style={{ border: `1px solid ${darkTheme ? "#555" : "#dadce0"}`, borderRadius: "8px", padding: "10px", backgroundColor: darkTheme ? "#444" : "white" }}>
+        <Box
+          display="flex"
+          flexDirection="column"
+          minHeight="60vh"
+          maxHeight="60vh"
+          overflow="auto"
+          style={{
+            border: `1px solid ${darkTheme ? "#555" : "#dadce0"}`,
+            borderRadius: "8px",
+            padding: "10px",
+            backgroundColor: darkTheme ? "#444" : "white",
+          }}
+        >
           {messages.map((message, index) => (
             <Message key={index} message={message} />
           ))}
@@ -191,7 +253,10 @@ function App() {
                 className="question-item"
                 variant="outlined"
                 size="small"
-                style={{color:'rgb(235 39 62)',border:"1px solid rgb(235 39 62)"}}
+                style={{
+                  color: "rgb(235 39 62)",
+                  border: "1px solid rgb(235 39 62)",
+                }}
                 onClick={() => onSubmit(question)}
               >
                 {question}
@@ -200,41 +265,123 @@ function App() {
           </div>
           <div ref={messagesEndRef} />
         </Box>
-        <form onSubmit={handleSubmit} style={{ marginTop: "20px", position: "relative" }}>
-          <TextField ref={inputRef} multiline rows={3} variant="outlined" value={userInput} onChange={handleChange} onKeyPress={handleKeyPress} disabled={isSubmitting} fullWidth style={{ backgroundColor: darkTheme ? "#555" : "white", borderRadius: "4px", marginBottom: "10px" }} onBlur={() => setTimeout(() => setShowSuggestions(false), 100)} onFocus={() => setShowSuggestions(true)} />
+        <form
+          onSubmit={handleSubmit}
+          style={{ marginTop: "20px", position: "relative" }}
+        >
+          <TextField
+            ref={inputRef}
+            multiline
+            rows={3}
+            variant="outlined"
+            value={userInput}
+            onChange={handleChange}
+            onKeyPress={handleKeyPress}
+            disabled={isSubmitting}
+            fullWidth
+            style={{
+              backgroundColor: darkTheme ? "#555" : "white",
+              borderRadius: "4px",
+              marginBottom: "10px",
+            }}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
+            onFocus={() => setShowSuggestions(true)}
+          />
           {showSuggestions && userInput && (
-  <ul style={{ position: "absolute", top: "101px", left: 0, width: "100%", backgroundColor: darkTheme ? "#555" : "white", borderRadius: "4px", border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`, zIndex: 1 }}>
-    {suggestions.map((suggestion, index) => (
-      <li key={index} onClick={() => handleSuggestionClick(suggestion)} style={{ color: darkTheme ? "#fff" : "#333" }}>{suggestion}</li>
-    ))}
-  </ul>
-)}
-          <Box className="buttons_last" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Button variant="contained"  type="submit" disabled={isSubmitting || !userInput.trim()} style={{ borderRadius: "4px", backgroundColor: darkTheme ? "#333" : "rgb(235 39 62)", color: "#fff", marginTop: "10px" }}>{isSubmitting ? <CircularProgress size={24} style={{ color: "white" }} /> : "Submit"}</Button>
+            <ul
+              style={{
+                position: "absolute",
+                top: "101px",
+                left: 0,
+                width: "100%",
+                backgroundColor: darkTheme ? "#555" : "white",
+                borderRadius: "4px",
+                border: `1px solid ${darkTheme ? "#777" : "#dadce0"}`,
+                zIndex: 1,
+              }}
+            >
+              {suggestions.map((suggestion, index) => (
+                <li
+                  key={index}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  style={{ color: darkTheme ? "#fff" : "#333" }}
+                >
+                  {suggestion}
+                </li>
+              ))}
+            </ul>
+          )}
+          <Box
+            className="buttons_last"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Button
+              variant="contained"
+              type="submit"
+              disabled={isSubmitting || !userInput.trim()}
+              style={{
+                borderRadius: "4px",
+                backgroundColor: darkTheme ? "#333" : "rgb(235 39 62)",
+                color: "#fff",
+                marginTop: "10px",
+              }}
+            >
+              {isSubmitting ? (
+                <CircularProgress size={24} style={{ color: "white" }} />
+              ) : (
+                "Submit"
+              )}
+            </Button>
             <Button
               variant="contained"
               color="secondary"
               type="button"
-              style={{  backgroundColor: darkTheme ? "#333" : "#fff", color: "rgb(235 39 62)"}}
+              style={{
+                backgroundColor: darkTheme ? "#333" : "#fff",
+                color: "rgb(235 39 62)",
+              }}
               className="microphone-button"
-              onMouseDown={() => toggleListening('start')}
+              onMouseDown={() => toggleListening("start")}
               onMouseUp={onStopListening}
               onMouseLeave={onStopListening}
             >
-               {listening ? <FontAwesomeIcon icon={faMicrophone} /> : <FontAwesomeIcon icon={faMicrophoneSlash} />}
+              {listening ? (
+                <FontAwesomeIcon icon={faMicrophone} />
+              ) : (
+                <FontAwesomeIcon icon={faMicrophoneSlash} />
+              )}
             </Button>
-           
           </Box>
         </form>
-        <Button variant="outlined" onClick={toggleDarkTheme} style={{ marginTop: "20px", color: darkTheme ? "#fff" : "#333", borderColor: darkTheme ? "#fff" : "#333" }}>{darkTheme ? "Switch to Light Theme" : "Switch to Dark Theme"}</Button>
+        <Button
+          variant="outlined"
+          onClick={toggleDarkTheme}
+          style={{
+            marginTop: "20px",
+            color: darkTheme ? "#fff" : "#333",
+            borderColor: darkTheme ? "#fff" : "#333",
+          }}
+        >
+          {darkTheme ? "Switch to Light Theme" : "Switch to Dark Theme"}
+        </Button>
       </Container>
     </div>
   );
 }
 
 const Message = ({ message }) => (
-  <Box mb={2} style={{ backgroundColor: "#dadce0", padding: "10px", borderRadius: "4px" }}>
-    <Typography variant="body1"><strong>{message.type === "ai" ? "Swinbot" : "You"}:</strong> {message.content}</Typography>
+  <Box
+    mb={2}
+    style={{ backgroundColor: "#dadce0", padding: "10px", borderRadius: "4px" }}
+  >
+    <Typography variant="body1">
+      <strong>{message.type === "ai" ? "Swinbot" : "You"}:</strong>{" "}
+      {message.content}
+    </Typography>
   </Box>
 );
 
