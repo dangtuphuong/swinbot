@@ -54,15 +54,16 @@ def get_similar_questions(user_input, vector_store, top_n):
     questions = []
     top_questions = []
     retriever = vector_store.as_retriever(
-        search_type="similarity_score_threshold", search_kwargs={"score_threshold": 0.7, "k": 1})
+        search_type="similarity_score_threshold",
+        search_kwargs={"score_threshold": 0.7, "k": 1},
+    )
     docs = retriever.invoke(user_input)
-    if (len(docs) > 0):
-        question_pattern = r'^\s*Q[.:]?\s*(.*)$'
-        questions = re.findall(
-            question_pattern, docs[0].page_content, re.MULTILINE)
+    if len(docs) > 0:
+        question_pattern = r"^\s*Q[.:]?\s*(.*)$"
+        questions = re.findall(question_pattern, docs[0].page_content, re.MULTILINE)
 
     # Vectorize the user input and questions
-    if (len(questions) > 0):
+    if len(questions) > 0:
         vectorizer = TfidfVectorizer()
         X = vectorizer.fit_transform([user_input] + questions)
 
@@ -70,8 +71,9 @@ def get_similar_questions(user_input, vector_store, top_n):
         similarities = cosine_similarity(X[0], X[1:])
 
         # Rank questions based on similarity scores
-        ranked_questions = [(question, score)
-                            for question, score in zip(questions, similarities[0])]
+        ranked_questions = [
+            (question, score) for question, score in zip(questions, similarities[0])
+        ]
         ranked_questions.sort(key=lambda x: x[1], reverse=True)
 
         # Exclude the top 1 question
@@ -86,7 +88,8 @@ def get_similar_questions(user_input, vector_store, top_n):
 def get_retriever(vector_store):
     # Get retriver from vector store, set similarity score threshold to be 0.6
     return vector_store.as_retriever(
-        search_type="similarity_score_threshold", search_kwargs={"score_threshold": 0.6})
+        search_type="similarity_score_threshold", search_kwargs={"score_threshold": 0.6}
+    )
 
 
 def check_similarity(user_input, vector_store):
@@ -104,15 +107,21 @@ def get_context_retriever_chain(vector_store, model):
     retriever = get_retriever(vector_store)
 
     # Prompt to get relevant text
-    search_query_prompt = ChatPromptTemplate.from_messages([
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("user", "{input}"),
-        ("user", "Given the above conversation, generate a search query to look up in order to get information relevant to the conversation")
-    ])
+    search_query_prompt = ChatPromptTemplate.from_messages(
+        [
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("user", "{input}"),
+            (
+                "user",
+                "Given the above conversation, generate a search query to look up in order to get information relevant to the conversation",
+            ),
+        ]
+    )
 
     # Context retriever chain with history
     retriever_chain = create_history_aware_retriever(
-        llm, retriever, search_query_prompt)
+        llm, retriever, search_query_prompt
+    )
 
     return retriever_chain
 
@@ -122,15 +131,16 @@ def get_conversational_rag_chain(retriever_chain, model):
     llm = ChatOpenAI(model=model, temperature=0)
 
     # Prompt to get the most relevant response
-    answer_query_prompt = ChatPromptTemplate.from_messages([
-        ("system", RESPONSE_TEMPLATE),
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("user", "{input}"),
-    ])
+    answer_query_prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", RESPONSE_TEMPLATE),
+            MessagesPlaceholder(variable_name="chat_history"),
+            ("user", "{input}"),
+        ]
+    )
 
     # Stuff documents chain
-    stuff_documents_chain = create_stuff_documents_chain(
-        llm, answer_query_prompt)
+    stuff_documents_chain = create_stuff_documents_chain(llm, answer_query_prompt)
 
     # Return retrieval chain from retriever chain and stuff documents chain
     return create_retrieval_chain(retriever_chain, stuff_documents_chain)
@@ -145,21 +155,20 @@ def get_response(user_input):
         return {"answer": OUT_OF_SCOPE_MESSAGE, "questions": []}
 
     # Proceed to get response if in scope
-    retriever_chain = get_context_retriever_chain(
-        vector_store, fine_tuned_model)
+    retriever_chain = get_context_retriever_chain(vector_store, fine_tuned_model)
     conversation_rag_chain = get_conversational_rag_chain(
-        retriever_chain, fine_tuned_model)
+        retriever_chain, fine_tuned_model
+    )
 
     # Get the most relevant response for given chat history and user input
-    response = conversation_rag_chain.invoke({
-        "chat_history": chat_history,
-        "input": user_input
-    })
+    response = conversation_rag_chain.invoke(
+        {"chat_history": chat_history, "input": user_input}
+    )
 
     # Get suggestion questions
     questions = get_similar_questions(user_input, vector_store, 3)
 
-    return {"answer": response['answer'], "questions": questions}
+    return {"answer": response["answer"], "questions": questions}
 
 
 # Create vector store from data retrieved from website url
@@ -167,17 +176,14 @@ vector_store = get_vectorstore_from_url(website_url)
 
 # Chat history to store all conversation
 chat_history = [
-    AIMessage(content="Hello, I am Swinbot. How can I help you?", type='ai'),
+    AIMessage(content="Hello, I am Swinbot. How can I help you?", type="ai"),
 ]
 
 
 def getChatHistory():
     result = []
     for message in chat_history:
-        result.append({
-            'type': message.type,
-            'content': message.content
-        })
+        result.append({"type": message.type, "content": message.content})
     # Return chat history as json
     return result
 
@@ -186,25 +192,25 @@ app = Flask(__name__)
 CORS(app)
 
 
-@app.route('/api')
+@app.route("/api")
 def api():
     return jsonify({"items": getChatHistory()})
 
 
-@app.route('/api/ask', methods=['POST'])
+@app.route("/api/ask", methods=["POST"])
 def ask():
     # Get user input from client side
-    user_input = request.get_json().get('data')
+    user_input = request.get_json().get("data")
     # Generate the most relevant response and next relevant questions
     bot_response = get_response(user_input)
     bot_answer = bot_response["answer"]
     bot_questions = bot_response["questions"]
     # Add user input and response to chat history
-    chat_history.append(HumanMessage(content=user_input, type='human'))
-    chat_history.append(AIMessage(content=bot_answer, type='ai'))
+    chat_history.append(HumanMessage(content=user_input, type="human"))
+    chat_history.append(AIMessage(content=bot_answer, type="ai"))
 
     return jsonify({"items": getChatHistory(), "questions": bot_questions})
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
