@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from "react";
-import axios from "axios";
+import React, { useEffect, useState, useRef } from "react";
+import axios, { AxiosResponse } from "axios";
 import {
   Container,
   Typography,
@@ -20,9 +20,21 @@ import SpeechRecognition, {
 } from "react-speech-recognition";
 import "./App.css";
 
-const debounce = (func, delay) => {
-  let timeoutId;
-  return function (...args) {
+type MessageType = {
+  type: string;
+  content: string;
+};
+
+interface MessageProps {
+  message: MessageType;
+}
+
+const debounce = <T extends (...args: any[]) => void>(
+  func: T,
+  delay: number,
+) => {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return function (this: any, ...args: Parameters<T>) {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
       func.apply(this, args);
@@ -31,18 +43,18 @@ const debounce = (func, delay) => {
 };
 
 function App() {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<MessageType[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userInput, setUserInput] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [darkTheme, setDarkTheme] = useState(false); // State for dark theme
   const [inputPosition, setInputPosition] = useState({ top: 0, left: 0 }); // State to track input position
   const [questions, setQuestions] = useState([]);
   const { transcript, resetTranscript, listening } = useSpeechRecognition();
 
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
+  const messagesEndRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchMessages();
@@ -83,8 +95,8 @@ function App() {
     }
   };
 
-  const handleChange = (e) => {
-    const value = e.target.value;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.currentTarget.value;
     setUserInput(value);
     if (value.trim()) {
       handleSuggestions(value);
@@ -94,12 +106,15 @@ function App() {
     }
   };
 
-  const onSubmit = async (value) => {
+  const onSubmit = async (value: string) => {
     setIsSubmitting(true);
     try {
-      const response = await axios.post("http://localhost:5000/api/ask", {
-        data: value,
-      });
+      const response: AxiosResponse = await axios.post(
+        "http://localhost:5000/api/ask",
+        {
+          data: value,
+        },
+      );
       setMessages([...response.data.items]);
       setQuestions(response?.data?.questions);
       setUserInput("");
@@ -111,19 +126,19 @@ function App() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: KeyboardEvent | React.FormEvent) => {
     e?.preventDefault();
     onSubmit(userInput.trim());
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
     }
   };
 
-  const toggleListening = (action) => {
+  const toggleListening = (action: string) => {
     if (action === "start") {
       SpeechRecognition.startListening({ continuous: true });
     } else if (action === "stop") {
@@ -144,19 +159,22 @@ function App() {
     try {
       const response = await fetch("keywords.csv");
       const data = await response.text();
-      const parsedData = Papa.parse(data, {
+      const parsedData = Papa.parse<string[]>(data, {
         header: false,
         skipEmptyLines: true,
       });
 
-      const filteredSuggestions = parsedData.data.reduce((acc, row) => {
-        const lowerCaseInputVal = inputVal.toLowerCase();
-        const lowerCaseRow = row[2].toLowerCase();
-        if (lowerCaseRow.includes(lowerCaseInputVal)) {
-          acc.push(row[0]);
-        }
-        return acc;
-      }, []);
+      const filteredSuggestions = parsedData.data.reduce<string[]>(
+        (acc, row) => {
+          const lowerCaseInputVal = inputVal.toLowerCase();
+          const lowerCaseRow = row[2].toLowerCase();
+          if (lowerCaseRow.includes(lowerCaseInputVal)) {
+            acc.push(row[0]);
+          }
+          return acc;
+        },
+        [],
+      );
 
       setSuggestions(filteredSuggestions.slice(0, 6));
       setShowSuggestions(filteredSuggestions.length > 0);
@@ -165,14 +183,14 @@ function App() {
     }
   }, 300);
 
-  const handleSuggestionClick = (suggestion) => {
+  const handleSuggestionClick = (suggestion: string) => {
     setUserInput(suggestion);
     setShowSuggestions(false);
   };
 
-  const handleClickOutside = (e) => {
+  const handleClickOutside = (e: MouseEvent) => {
     // Check if the click target is not inside the inputRef
-    if (inputRef.current && !inputRef.current.contains(e.target)) {
+    if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
       setShowSuggestions(false);
     }
   };
@@ -373,7 +391,7 @@ function App() {
   );
 }
 
-const Message = ({ message }) => (
+const Message = ({ message }: MessageProps) => (
   <Box
     mb={2}
     style={{ backgroundColor: "#dadce0", padding: "10px", borderRadius: "4px" }}
